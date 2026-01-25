@@ -4,6 +4,14 @@ import com.chenweikeng.pim.PimClient;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.lang.reflect.Type;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponents;
@@ -13,233 +21,234 @@ import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemLore;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.lang.reflect.Type;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 public class PinDetailHandler {
-    private static PinDetailHandler instance;
-    private final Map<String, Map<String, PinDetailEntry>> detailMap;
-    private final Map<String, Integer> pendingUpdatedCountBySeries;
-    private final Gson gson;
-    private final File dataFile;
-    private boolean hasPendingChanges = false;
-    private int tickCount = 0;
-    public static String currentOpenedPinSeries;
+  private static PinDetailHandler instance;
+  private final Map<String, Map<String, PinDetailEntry>> detailMap;
+  private final Map<String, Integer> pendingUpdatedCountBySeries;
+  private final Gson gson;
+  private final File dataFile;
+  private boolean hasPendingChanges = false;
+  private int tickCount = 0;
+  public static String currentOpenedPinSeries;
 
-    public enum PinCondition {
-        LOCKED,
-        MINT,
-        NOTMINT
+  public enum PinCondition {
+    LOCKED,
+    MINT,
+    NOTMINT
+  }
+
+  private PinDetailHandler() {
+    this.gson = new GsonBuilder().setPrettyPrinting().create();
+    this.detailMap = new HashMap<>();
+    this.pendingUpdatedCountBySeries = new HashMap<>();
+    this.dataFile = new File("config/pim_pin_detail.json");
+    load();
+  }
+
+  public static PinDetailHandler getInstance() {
+    if (instance == null) {
+      instance = new PinDetailHandler();
+    }
+    return instance;
+  }
+
+  private boolean updateDetailEntry(PinDetailEntry parsedEntry) {
+    if (currentOpenedPinSeries == null) {
+      return false;
     }
 
-    private PinDetailHandler() {
-        this.gson = new GsonBuilder().setPrettyPrinting().create();
-        this.detailMap = new HashMap<>();
-        this.pendingUpdatedCountBySeries = new HashMap<>();
-        this.dataFile = new File("config/pim_pin_detail.json");
-        load();
+    Map<String, PinDetailEntry> seriesMap =
+        detailMap.computeIfAbsent(currentOpenedPinSeries, k -> new HashMap<>());
+    PinDetailEntry existingEntry = seriesMap.get(parsedEntry.pinName);
+    boolean added = false;
+    boolean updated = false;
+
+    if (existingEntry == null) {
+      seriesMap.put(parsedEntry.pinName, parsedEntry);
+      added = true;
+    } else if (existingEntry.condition != parsedEntry.condition) {
+      existingEntry.condition = parsedEntry.condition;
+      updated = true;
     }
 
-    public static PinDetailHandler getInstance() {
-        if (instance == null) {
-            instance = new PinDetailHandler();
-        }
-        return instance;
+    if (added) {
+      pendingUpdatedCountBySeries.merge(currentOpenedPinSeries, 1, Integer::sum);
     }
 
-    private boolean updateDetailEntry(PinDetailEntry parsedEntry) {
-        if (currentOpenedPinSeries == null) {
-            return false;
-        }
-
-        Map<String, PinDetailEntry> seriesMap = detailMap.computeIfAbsent(currentOpenedPinSeries, k -> new HashMap<>());
-        PinDetailEntry existingEntry = seriesMap.get(parsedEntry.pinName);
-        boolean added = false;
-        boolean updated = false;
-
-        if (existingEntry == null) {
-            seriesMap.put(parsedEntry.pinName, parsedEntry);
-            added = true;
-        } else if (existingEntry.condition != parsedEntry.condition) {
-            existingEntry.condition = parsedEntry.condition;
-            updated = true;
-        }
-
-        if (added) {
-            pendingUpdatedCountBySeries.merge(currentOpenedPinSeries, 1, Integer::sum);
-        }
-
-        if (added || updated) {
-            hasPendingChanges = true;
-        }
-
-        return added || updated;
+    if (added || updated) {
+      hasPendingChanges = true;
     }
 
-    private void flushUpdates() {
-        if (!hasPendingChanges) {
-            return;
-        }
+    return added || updated;
+  }
 
-        var player = Minecraft.getInstance().player;
-        if (player != null) {
-            for (Map.Entry<String, Integer> entry : pendingUpdatedCountBySeries.entrySet()) {
-                String seriesName = entry.getKey();
-                int count = entry.getValue();
-                if (count > 0) {
-                    player.displayClientMessage(Component.literal("§6✨ §e[Pim] §fThe pin detail information has been updated for §e" + count + "§f pin" + (count == 1 ? "" : "s") + " in §e" + seriesName + "§f."), false);
-                }
-            }
-        }
-
-        save();
-
-        pendingUpdatedCountBySeries.clear();
-        hasPendingChanges = false;
+  private void flushUpdates() {
+    if (!hasPendingChanges) {
+      return;
     }
 
-    public void handleContainerSetSlotData(ClientboundContainerSetSlotPacket packet) {
-        if (packet.getSlot() >= 45) {
-            return;
+    var player = Minecraft.getInstance().player;
+    if (player != null) {
+      for (Map.Entry<String, Integer> entry : pendingUpdatedCountBySeries.entrySet()) {
+        String seriesName = entry.getKey();
+        int count = entry.getValue();
+        if (count > 0) {
+          player.displayClientMessage(
+              Component.literal(
+                  "§6✨ §e[Pim] §fThe pin detail information has been updated for §e"
+                      + count
+                      + "§f pin"
+                      + (count == 1 ? "" : "s")
+                      + " in §e"
+                      + seriesName
+                      + "§f."),
+              false);
         }
-
-        ItemStack itemStack = packet.getItem();
-        if (itemStack == null || itemStack.isEmpty()) {
-            return;
-        }
-
-        PinDetailEntry parsedEntry = parsePinEntry(itemStack);
-        if (parsedEntry == null) {
-            return;
-        }
-
-        updateDetailEntry(parsedEntry);
+      }
     }
 
-    public void handleContainerData(ClientboundContainerSetContentPacket packet) {
-        List<ItemStack> items = packet.items();
+    save();
 
-        for (int i = 0; i < Math.min(items.size(), 45); i++) {
-            ItemStack stack = items.get(i);
-            if (!stack.isEmpty()) {
-                PinDetailEntry parsedEntry = parsePinEntry(stack);
-                if (parsedEntry != null) {
-                    updateDetailEntry(parsedEntry);
-                }
-            }
-        }
+    pendingUpdatedCountBySeries.clear();
+    hasPendingChanges = false;
+  }
+
+  public void handleContainerSetSlotData(ClientboundContainerSetSlotPacket packet) {
+    if (packet.getSlot() >= 45) {
+      return;
     }
 
-    public void tick() {
-        tickCount++;
-        if (tickCount >= 20) {
-            tickCount = 0;
-            flushUpdates();
-        }
+    ItemStack itemStack = packet.getItem();
+    if (itemStack == null || itemStack.isEmpty()) {
+      return;
     }
 
-    private void save() {
-        if (dataFile.getParentFile() != null && !dataFile.getParentFile().exists()) {
-            dataFile.getParentFile().mkdirs();
-        }
-
-        try (FileWriter writer = new FileWriter(dataFile)) {
-            gson.toJson(detailMap, writer);
-        } catch (IOException e) {
-            PimClient.LOGGER.error("[Pim] Failed to save pin detail data", e);
-        }
+    PinDetailEntry parsedEntry = parsePinEntry(itemStack);
+    if (parsedEntry == null) {
+      return;
     }
 
-    private void load() {
-        if (!dataFile.exists()) {
-            return;
-        }
+    updateDetailEntry(parsedEntry);
+  }
 
-        try (FileReader reader = new FileReader(dataFile)) {
-            Type mapType = new TypeToken<Map<String, Map<String, PinDetailEntry>>>() {}.getType();
-            Map<String, Map<String, PinDetailEntry>> loadedMap = gson.fromJson(reader, mapType);
-            if (loadedMap != null) {
-                detailMap.putAll(loadedMap);
-            }
-        } catch (IOException e) {
-            PimClient.LOGGER.error("[Pim] Failed to load pin detail data", e);
+  public void handleContainerData(ClientboundContainerSetContentPacket packet) {
+    List<ItemStack> items = packet.items();
+
+    for (int i = 0; i < Math.min(items.size(), 45); i++) {
+      ItemStack stack = items.get(i);
+      if (!stack.isEmpty()) {
+        PinDetailEntry parsedEntry = parsePinEntry(stack);
+        if (parsedEntry != null) {
+          updateDetailEntry(parsedEntry);
         }
+      }
+    }
+  }
+
+  public void tick() {
+    tickCount++;
+    if (tickCount >= 20) {
+      tickCount = 0;
+      flushUpdates();
+    }
+  }
+
+  private void save() {
+    if (dataFile.getParentFile() != null && !dataFile.getParentFile().exists()) {
+      dataFile.getParentFile().mkdirs();
     }
 
-    public static PinDetailEntry parsePinEntry(ItemStack stack) {
-        DataComponentMap map = stack.getComponents();
-        Component customName = map.get(DataComponents.CUSTOM_NAME);
-        ItemLore lore = map.get(DataComponents.LORE);
+    try (FileWriter writer = new FileWriter(dataFile)) {
+      gson.toJson(detailMap, writer);
+    } catch (IOException e) {
+      PimClient.LOGGER.error("[Pim] Failed to save pin detail data", e);
+    }
+  }
 
-        if (customName == null || lore == null) {
-            return null;
-        }
-
-        PinDetailEntry entry = new PinDetailEntry();
-        entry.pinName = customName.getString();
-        boolean isPinEntry = false;
-
-        for (Component line : lore.lines()) {
-            String loreText = line.getString();
-            
-            if (loreText.startsWith("Status : ")) {
-                String status = loreText.substring("Status : ".length());
-                if (status.equals("Locked")) {
-                    entry.condition = PinCondition.LOCKED;
-                }
-                isPinEntry = true;
-            } else if (loreText.startsWith("Pin Condition: ")) {
-                String condition = loreText.substring("Pin Condition: ".length());
-                if (condition.equals("Brand New Mint Condition")) {
-                    entry.condition = PinCondition.MINT;
-                } else {
-                    entry.condition = PinCondition.NOTMINT;
-                }
-                isPinEntry = true;
-            }
-        }
-
-        return isPinEntry ? entry : null;
+  private void load() {
+    if (!dataFile.exists()) {
+      return;
     }
 
-    public Map<String, PinDetailEntry> getSeriesDetails(String seriesName) {
-        return detailMap.get(seriesName);
+    try (FileReader reader = new FileReader(dataFile)) {
+      Type mapType = new TypeToken<Map<String, Map<String, PinDetailEntry>>>() {}.getType();
+      Map<String, Map<String, PinDetailEntry>> loadedMap = gson.fromJson(reader, mapType);
+      if (loadedMap != null) {
+        detailMap.putAll(loadedMap);
+      }
+    } catch (IOException e) {
+      PimClient.LOGGER.error("[Pim] Failed to load pin detail data", e);
+    }
+  }
+
+  public static PinDetailEntry parsePinEntry(ItemStack stack) {
+    DataComponentMap map = stack.getComponents();
+    Component customName = map.get(DataComponents.CUSTOM_NAME);
+    ItemLore lore = map.get(DataComponents.LORE);
+
+    if (customName == null || lore == null) {
+      return null;
     }
 
-    public static String parsePinSeriesFromLore(ItemStack stack) {
-        DataComponentMap map = stack.getComponents();
-        ItemLore lore = map.get(DataComponents.LORE);
+    PinDetailEntry entry = new PinDetailEntry();
+    entry.pinName = customName.getString();
+    boolean isPinEntry = false;
 
-        if (lore == null) {
-            return null;
+    for (Component line : lore.lines()) {
+      String loreText = line.getString();
+
+      if (loreText.startsWith("Status : ")) {
+        String status = loreText.substring("Status : ".length());
+        if (status.equals("Locked")) {
+          entry.condition = PinCondition.LOCKED;
         }
-
-        for (Component line : lore.lines()) {
-            String loreText = line.getString();
-            if (loreText.startsWith("Pin Series: ")) {
-                return loreText.substring("Pin Series: ".length());
-            }
+        isPinEntry = true;
+      } else if (loreText.startsWith("Pin Condition: ")) {
+        String condition = loreText.substring("Pin Condition: ".length());
+        if (condition.equals("Brand New Mint Condition")) {
+          entry.condition = PinCondition.MINT;
+        } else {
+          entry.condition = PinCondition.NOTMINT;
         }
-
-        return null;
+        isPinEntry = true;
+      }
     }
 
-    public PinDetailEntry findDetailEntry(String seriesName, String pinName) {
-        Map<String, PinDetailEntry> seriesMap = detailMap.get(seriesName);
-        if (seriesMap == null) {
-            return null;
-        }
-        return seriesMap.get(pinName);
+    return isPinEntry ? entry : null;
+  }
+
+  public Map<String, PinDetailEntry> getSeriesDetails(String seriesName) {
+    return detailMap.get(seriesName);
+  }
+
+  public static String parsePinSeriesFromLore(ItemStack stack) {
+    DataComponentMap map = stack.getComponents();
+    ItemLore lore = map.get(DataComponents.LORE);
+
+    if (lore == null) {
+      return null;
     }
 
-    public static class PinDetailEntry {
-        public String pinName;
-        public PinCondition condition;
+    for (Component line : lore.lines()) {
+      String loreText = line.getString();
+      if (loreText.startsWith("Pin Series: ")) {
+        return loreText.substring("Pin Series: ".length());
+      }
     }
+
+    return null;
+  }
+
+  public PinDetailEntry findDetailEntry(String seriesName, String pinName) {
+    Map<String, PinDetailEntry> seriesMap = detailMap.get(seriesName);
+    if (seriesMap == null) {
+      return null;
+    }
+    return seriesMap.get(pinName);
+  }
+
+  public static class PinDetailEntry {
+    public String pinName;
+    public PinCondition condition;
+  }
 }

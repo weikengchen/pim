@@ -1,6 +1,7 @@
 plugins {
 	id 'net.fabricmc.fabric-loom-remap' version "${loom_version}"
 	id 'maven-publish'
+	id 'com.diffplug.spotless' version '6.25.0'
 }
 
 version = project.mod_version
@@ -77,5 +78,14 @@ publishing {
 		// Notice: This block does NOT have the same function as the block in the top level.
 		// The repositories here will be used for publishing your artifact, not for
 		// retrieving dependencies.
+	}
+}
+
+spotless {
+	java {
+		googleJavaFormat()
+		removeUnusedImports()
+		trimTrailingWhitespace()
+		endWithNewline()
 	}
 }
