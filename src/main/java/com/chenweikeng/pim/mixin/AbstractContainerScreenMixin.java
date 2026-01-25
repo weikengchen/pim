@@ -64,6 +64,9 @@ public class AbstractContainerScreenMixin {
       if (missingMintPinNames.contains(key)) {
         renderItemWithFills(guiGraphics, slot, itemStack, font, 0xFF00FF00, null, ci);
         return;
+      } else {
+        renderItemWithFills(guiGraphics, slot, itemStack, font, 0xFFFFE000, 0x80FFE000, ci);
+        return;
       }
     }
 

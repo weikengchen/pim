@@ -49,27 +49,47 @@ public class GuiMixin {
     if (onBoardEntry != null
         && onBoardEntry.condition == PinDetailHandler.PinCondition.MINT
         && pinSeriesEntry != null
-        && pinSeriesEntry.availability == PinRarityHandler.Availability.REQUIRED
-        && pinDetailEntry != null
-        && (pinDetailEntry.condition == PinDetailHandler.PinCondition.LOCKED
-            || pinDetailEntry.condition == PinDetailHandler.PinCondition.NOTMINT)) {
-      guiGraphics.fill(i, j, i + 16, j + 16, 0xFF00FF00);
+        && pinSeriesEntry.availability == PinRarityHandler.Availability.REQUIRED) {
+      if (pinDetailEntry != null
+          && (pinDetailEntry.condition == PinDetailHandler.PinCondition.LOCKED
+              || pinDetailEntry.condition == PinDetailHandler.PinCondition.NOTMINT)) {
+        guiGraphics.fill(i, j, i + 16, j + 16, 0xFF00FF00);
 
-      float f = itemStack.getPopTime() - deltaTracker.getGameTimeDeltaPartialTick(false);
-      if (f > 0.0F) {
-        float g = 1.0F + f / 5.0F;
-        guiGraphics.pose().pushMatrix();
-        guiGraphics.pose().translate(i + 8, j + 12);
-        guiGraphics.pose().scale(1.0F / g, (g + 1.0F) / 2.0F);
-        guiGraphics.pose().translate(-(i + 8), -(j + 12));
+        float f = itemStack.getPopTime() - deltaTracker.getGameTimeDeltaPartialTick(false);
+        if (f > 0.0F) {
+          float g = 1.0F + f / 5.0F;
+          guiGraphics.pose().pushMatrix();
+          guiGraphics.pose().translate(i + 8, j + 12);
+          guiGraphics.pose().scale(1.0F / g, (g + 1.0F) / 2.0F);
+          guiGraphics.pose().translate(-(i + 8), -(j + 12));
+        }
+
+        guiGraphics.renderItem(player, itemStack, i, j, k);
+        if (f > 0.0F) {
+          guiGraphics.pose().popMatrix();
+        }
+
+        guiGraphics.renderItemDecorations(this.minecraft.font, itemStack, i, j);
+      } else {
+        guiGraphics.fill(i, j, i + 16, j + 16, 0xFFFFE000);
+
+        float f = itemStack.getPopTime() - deltaTracker.getGameTimeDeltaPartialTick(false);
+        if (f > 0.0F) {
+          float g = 1.0F + f / 5.0F;
+          guiGraphics.pose().pushMatrix();
+          guiGraphics.pose().translate(i + 8, j + 12);
+          guiGraphics.pose().scale(1.0F / g, (g + 1.0F) / 2.0F);
+          guiGraphics.pose().translate(-(i + 8), -(j + 12));
+        }
+
+        guiGraphics.renderItem(player, itemStack, i, j, k);
+        if (f > 0.0F) {
+          guiGraphics.pose().popMatrix();
+        }
+        guiGraphics.fill(i, j, i + 16, j + 16, 0x80FFE000);
+
+        guiGraphics.renderItemDecorations(this.minecraft.font, itemStack, i, j);
       }
-
-      guiGraphics.renderItem(player, itemStack, i, j, k);
-      if (f > 0.0F) {
-        guiGraphics.pose().popMatrix();
-      }
-
-      guiGraphics.renderItemDecorations(this.minecraft.font, itemStack, i, j);
     }
   }
 }
