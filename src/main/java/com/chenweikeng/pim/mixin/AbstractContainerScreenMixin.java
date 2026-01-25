@@ -1,0 +1,251 @@
+package com.chenweikeng.pim.mixin;
+
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+import com.chenweikeng.pim.screen.PinDetailHandler;
+import com.chenweikeng.pim.screen.PinRarityHandler;
+import com.chenweikeng.pim.screen.PinBookHandler;
+import com.chenweikeng.pim.screen.InventoryHandler;
+
+import java.util.Map;
+import java.util.Set;
+
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.inventory.ContainerScreen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.client.gui.Font;
+
+@Mixin(AbstractContainerScreen.class)
+public class AbstractContainerScreenMixin {
+    @Shadow
+    protected int imageWidth;
+
+    @Inject(at = @At("HEAD"), method = "renderSlot", cancellable = true)
+    public void onRenderSlot(GuiGraphics guiGraphics, Slot slot, int i, int j, CallbackInfo ci) {
+        AbstractContainerScreen<?> screen = (AbstractContainerScreen<?>) (Object) this;
+        ScreenAccessor screenAccessor = (ScreenAccessor) screen;
+		int k = slot.x;
+		int l = slot.y;
+
+        ItemStack itemStack = slot.getItem();
+        if (itemStack.isEmpty()) {
+            return;
+        }
+
+        Font font = screenAccessor.pim$getFont();
+        if (font == null) {
+            return;
+        }
+
+        if (!(screen instanceof ContainerScreen) && !(screen instanceof InventoryScreen)) {
+            return;
+        }
+
+        // InventoryScreen or ContainerScreen
+        PinDetailHandler.PinDetailEntry entry2 = PinDetailHandler.parsePinEntry(itemStack);
+        if (entry2 != null && entry2.condition == PinDetailHandler.PinCondition.MINT && slot.container instanceof Inventory) {
+            String pinSeries = PinDetailHandler.parsePinSeriesFromLore(itemStack);
+            if (pinSeries == null) {
+                return;
+            }
+            Set<String> missingMintPinNames = screen.getMenu() != null ? 
+                InventoryHandler.getInstance().getMissingMintPinNames(screen.getMenu().slots) : 
+                        Set.of();
+                        
+            String key = pinSeries + ":" + entry2.pinName;
+            if (missingMintPinNames.contains(key)) {
+                guiGraphics.fill(k, l, k + 16, l + 16, 0xFF00FF00);
+
+                int m = slot.x + slot.y * this.imageWidth;
+                if (slot.isFake()) {
+                    guiGraphics.renderFakeItem(itemStack, k, l, m);
+                } else {
+                    guiGraphics.renderItem(itemStack, k, l, m);
+                }
+
+                guiGraphics.renderItemDecorations(font, itemStack, k, l, null);
+
+                ci.cancel();
+                return;
+            }
+        }
+
+        if (!(screen instanceof ContainerScreen)) {
+            return;
+        }
+
+        String titleStr = screenAccessor.pim$getTitle().getString();
+        if (titleStr.contains("\u4e51")) {
+            PinBookHandler.PinBookEntry entry = PinBookHandler.getInstance().parsePinbookEntry(itemStack);
+
+            if (entry != null && slot.getContainerSlot() < 45 && !(slot.container instanceof Inventory)){
+                String itemName = itemStack.getHoverName().getString();
+                if (!itemName.startsWith("Pin Pack - ")) {
+                    return;
+                }
+
+                String seriesName = itemName.substring("Pin Pack - ".length());
+                
+                Map<String, PinDetailHandler.PinDetailEntry> detailMap = PinDetailHandler.getInstance().getSeriesDetails(seriesName);
+                boolean shouldBlink = detailMap == null || detailMap.size() != entry.totalMints;
+
+                PinRarityHandler.PinSeriesEntry seriesEntry = PinRarityHandler.getInstance().getSeriesEntry(seriesName);
+                if (seriesEntry != null && seriesEntry.availability == PinRarityHandler.Availability.REQUIRED && entry.mintsCollected < entry.totalMints) {
+                    Set<String> incompleteSeries = screen.getMenu() != null ? 
+                        InventoryHandler.getInstance().getIncompleteSeries(screen.getMenu().slots) : 
+                        Set.of();
+                    int fillColor = incompleteSeries.contains(seriesName) ? 0xFF00FF00 : 0xFFFFE000;
+                    guiGraphics.fill(k, l, k + 16, l + 16, fillColor);
+
+                    if (!shouldBlink || System.nanoTime() % 1_000_000_000 < 500_000_000) {
+                        int m = slot.x + slot.y * this.imageWidth;
+                        if (slot.isFake()) {
+                            guiGraphics.renderFakeItem(itemStack, k, l, m);
+                        } else {
+                            guiGraphics.renderItem(itemStack, k, l, m);
+                        }
+
+                        guiGraphics.renderItemDecorations(font, itemStack, k, l, null);
+                    }
+                    ci.cancel();
+                }
+            } else {
+                if (
+                    PinDetailHandler.currentOpenedPinSeries != null && 
+                    entry2 != null 
+                    && entry2.condition != PinDetailHandler.PinCondition.MINT
+                    && !(slot.container instanceof Inventory)
+                ) {
+                    Set<String> missingMintPinNames = screen.getMenu() != null ? 
+                        InventoryHandler.getInstance().getMissingMintPinNames(screen.getMenu().slots) : 
+                        Set.of();
+                    
+                    String key = PinDetailHandler.currentOpenedPinSeries + ":" + entry2.pinName;
+                    if (missingMintPinNames.contains(key)) {
+                        guiGraphics.fill(k, l, k + 16, l + 16, 0xFF00FF00);
+
+                        int m = slot.x + slot.y * this.imageWidth;
+                        if (slot.isFake()) {
+                            guiGraphics.renderFakeItem(itemStack, k, l, m);
+                        } else {
+                            guiGraphics.renderItem(itemStack, k, l, m);
+                        }
+
+                        guiGraphics.renderItemDecorations(font, itemStack, k, l, null);
+
+                        ci.cancel();
+                    }
+                }
+            }
+        } else if (titleStr.contains("\u4e54") && titleStr.contains("\u9dfc")) {
+            if (slot.container instanceof Inventory) {
+                return;
+            }
+
+            String pinSeries = PinDetailHandler.getInstance().parsePinSeriesFromLore(itemStack);
+            if (pinSeries == null) {
+                return;
+            }
+
+            String itemName = itemStack.getHoverName().getString();
+
+            PinDetailHandler.PinDetailEntry onBoardEntry = PinDetailHandler.getInstance().parsePinEntry(itemStack);
+            PinRarityHandler.PinSeriesEntry pinSeriesEntry = PinRarityHandler.getInstance().getSeriesEntry(pinSeries);
+            PinDetailHandler.PinDetailEntry pinDetailEntry = PinDetailHandler.getInstance().findDetailEntry(pinSeries, itemName);
+            
+            if (onBoardEntry != null && onBoardEntry.condition == PinDetailHandler.PinCondition.MINT && pinSeriesEntry != null && pinSeriesEntry.availability == PinRarityHandler.Availability.REQUIRED && pinDetailEntry != null && (pinDetailEntry.condition == PinDetailHandler.PinCondition.LOCKED || pinDetailEntry.condition == PinDetailHandler.PinCondition.NOTMINT)) {
+                guiGraphics.fill(k, l, k + 16, l + 16, 0xFF00FF00);
+
+                int m = slot.x + slot.y * this.imageWidth;
+                if (slot.isFake()) {
+                    guiGraphics.renderFakeItem(itemStack, k, l, m);
+                } else {
+                    guiGraphics.renderItem(itemStack, k, l, m);
+                }
+
+                guiGraphics.renderItemDecorations(font, itemStack, k, l, null);
+                ci.cancel();
+            }
+        } else if (titleStr.contains("\u4e9f") || titleStr.contains("\u4ea0") || titleStr.contains("\u4ea1")
+            || titleStr.contains("\u4ea2") || titleStr.contains("\u4ea3") || titleStr.contains("\u4ea4")
+        ) {
+            if (slot.container instanceof Inventory) {
+                return;
+            }
+
+            String pinSeries = PinDetailHandler.getInstance().parsePinSeriesFromLore(itemStack);
+            if (pinSeries == null) {
+                return;
+            }
+
+            String itemName = itemStack.getHoverName().getString();
+
+            PinDetailHandler.PinDetailEntry onBoardEntry = PinDetailHandler.getInstance().parsePinEntry(itemStack);
+            PinRarityHandler.PinSeriesEntry pinSeriesEntry = PinRarityHandler.getInstance().getSeriesEntry(pinSeries);
+            PinDetailHandler.PinDetailEntry pinDetailEntry = PinDetailHandler.getInstance().findDetailEntry(pinSeries, itemName);
+            
+            if (onBoardEntry != null && onBoardEntry.condition == PinDetailHandler.PinCondition.MINT && pinSeriesEntry != null && pinSeriesEntry.availability == PinRarityHandler.Availability.REQUIRED && pinDetailEntry != null && (pinDetailEntry.condition == PinDetailHandler.PinCondition.LOCKED || pinDetailEntry.condition == PinDetailHandler.PinCondition.NOTMINT)) {
+                guiGraphics.fill(k, l, k + 16, l + 16, 0xFF00FF00);
+
+                int m = slot.x + slot.y * this.imageWidth;
+                if (slot.isFake()) {
+                    guiGraphics.renderFakeItem(itemStack, k, l, m);
+                } else {
+                    guiGraphics.renderItem(itemStack, k, l, m);
+                }
+
+                guiGraphics.renderItemDecorations(font, itemStack, k, l, null);
+                ci.cancel();
+            }
+        }
+    }
+
+    @Inject(at = @At("HEAD"), method = "slotClicked")
+    public void onSlotClicked(Slot slot, int i, int j, ClickType clickType, CallbackInfo ci) {
+        if (slot == null) {
+            return;
+        }
+
+        if (slot.getContainerSlot() >= 45 || slot.container instanceof Inventory) {
+            return;
+        }
+
+        AbstractContainerScreen<?> screen = (AbstractContainerScreen<?>) (Object) this;
+        ScreenAccessor screenAccessor = (ScreenAccessor) screen;
+
+        if (!(screen instanceof ContainerScreen)) {
+            return;
+        }
+
+        String titleStr = screenAccessor.pim$getTitle().getString();
+        if (!titleStr.contains("\u4e51")) {
+            return;
+        }
+
+        ItemStack itemStack = slot.getItem();
+
+        if (itemStack.isEmpty()) {
+            return;
+        }
+
+        String itemName = itemStack.getHoverName().getString();
+        if (itemName.startsWith("Pin Pack - ")) {
+            String seriesName = itemName.substring("Pin Pack - ".length());
+            PinRarityHandler.PinSeriesEntry seriesEntry = PinRarityHandler.getInstance().getSeriesEntry(seriesName);
+            if (seriesEntry != null && seriesEntry.availability == PinRarityHandler.Availability.OPTIONAL) {
+                PinDetailHandler.currentOpenedPinSeries = null;
+            } else {
+                PinDetailHandler.currentOpenedPinSeries = seriesName;
+            }
+        }
+    }
+}

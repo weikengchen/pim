@@ -1,0 +1,21 @@
+{
+	"required": true,
+	"package": "com.chenweikeng.pim.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [],
+	"client": [
+		"ClientPacketListenerMixin",
+		"ItemUseMixin",
+		"BossHealthOverlayMixin",
+		"ClientTickMixin",
+		"ScreenAccessor",
+		"AbstractContainerScreenMixin",
+		"GuiMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}
