@@ -59,6 +59,9 @@ public class InventoryHandler {
 
       PinDetailHandler.PinDetailEntry existingEntry =
           PinDetailHandler.getInstance().findDetailEntry(pinSeries, parsedEntry.pinName);
+      if (existingEntry == null) {
+        continue;
+      }
       if (existingEntry != null && existingEntry.condition == PinDetailHandler.PinCondition.MINT) {
         continue;
       }

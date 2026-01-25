@@ -1,6 +1,5 @@
 package com.chenweikeng.pim.mixin;
 
-import com.chenweikeng.pim.PimClient;
 import com.chenweikeng.pim.screen.PinBookHandler;
 import com.chenweikeng.pim.screen.PinDetailHandler;
 import com.chenweikeng.pim.screen.PinRarityHandler;
@@ -24,8 +23,6 @@ public class ClientPacketListenerMixin {
     Screen screen = Minecraft.getInstance().screen;
     if (screen != null) {
       ScreenManager.ScreenType screenType = ScreenManager.detectScreenType(screen);
-      PimClient.LOGGER.info(
-          "Container title: {} | Screen type: {}", screen.getTitle().getString(), screenType);
 
       if (screenType == ScreenManager.ScreenType.PIN_RARITY_WINDOW) {
         PinRarityHandler.getInstance().handleContainerData(inventoryS2CPacket);
