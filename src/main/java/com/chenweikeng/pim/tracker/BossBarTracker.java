@@ -18,7 +18,7 @@ import net.minecraft.world.phys.Vec3;
 public class BossBarTracker {
   private static final double CLOSE_DISTANCE = 3.0;
   private static final long NEXT_TRADER_DISPLAY_TIME_MS = 3000;
-  private static final long SWITCH_COOLDOWN_MS = 2000;
+  private static final long SWITCH_COOLDOWN_MS = 1000;
   private static final long TELEPORT_COOLDOWN_MS = 2000;
   private static BossBarTracker instance;
 
