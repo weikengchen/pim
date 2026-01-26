@@ -11,6 +11,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.ContainerScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.client.gui.screens.inventory.ShulkerBoxScreen;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
@@ -42,7 +43,9 @@ public class AbstractContainerScreenMixin {
       return;
     }
 
-    if (!(screen instanceof ContainerScreen) && !(screen instanceof InventoryScreen)) {
+    if (!(screen instanceof ContainerScreen)
+        && !(screen instanceof InventoryScreen)
+        && !(screen instanceof ShulkerBoxScreen)) {
       return;
     }
 
