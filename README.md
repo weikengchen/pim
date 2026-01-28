@@ -8,21 +8,48 @@ After installation, the user needs to open all pages in `/pinrarity` and `/pinbo
 
 ## ✨ Highlights
 
-### 📊 Pin trading board
+The mod adds colored backgrounds and overlays to pins in various screens to help you quickly identify which pins to collect, trade, or ignore.
 
-Pins that are not relevant to the user are displayed with a magenta color. Pins that the user should exchange are highlighted with a green background. 
+### 🎨 Color Legend
 
-### 🎒 Inventory
+| Color | Meaning |
+|-------|---------|
+| 🟢 **Green background** | Mint pins you're missing - add these to your pinbook! |
+| 🟡 **Golden background** | Mint pins you already have - still useful for trading |
+| 🔴 **Magenta overlay** | Pins not relevant to you - can ignore |
+| 🟠 **Yellow background** | Pin series not yet complete |
 
-Mint pins in the inventory that can be put into `/pinbook` are shown with a green background. Mint pins that the player already has the mint copies in `/pinbook` are shown with a golden background (signaling that they can still be used for pin trading). 
+### 📊 Pin Trading Boards
 
-### 📚 Pinbook series
+When viewing pin trading boards (boards where you can exchange pins):
 
-Pin series with missing information would be blinking. Otherwise, yellow background signals that the pin series are not complete, and green background signals that some pins in the inventory can be put into this series.
+- **Green background**: Mint pins you should trade for - these are pins you don't have mint copies of yet
+- **Golden background**: Mint pins you already own - can still be traded for other pins
+- **Magenta overlay**: Pins you don't need - these aren't relevant to your collection
 
-### 📦 Pin pack
+### 🎒 Inventory & Player HUD
 
-Pins in the pin pack that are not relevant are shown with a magenta color. Mint pins that can be put into the pinbook has a green highlight, and mint pins that the player already has the mint copies in `/pinbook` are shown with a golden background.
+When looking at your inventory or pins in your hotbar:
+
+- **Green background**: Mint pins that can be added to your pinbook - you're missing the mint version!
+- **Golden background**: Mint pins you already have in your pinbook - ready for trading
+- **Magenta overlay**: Pins you don't need - these aren't relevant to your collection
+
+### 📚 Pinbook Series
+
+When browsing your pinbook collection:
+
+- **Blinking**: Pin series with missing information - open the series to load pin details
+- **Yellow background**: Incomplete series - you're still missing some pins
+- **Green background**: Complete series with pins ready to add from inventory
+
+### 📦 Pin Packs
+
+When opening pin packs in the pinbook:
+
+- **Magenta overlay**: Pins not relevant to you - can ignore
+- **Green background**: Mint pins you can add to your pinbook
+- **Golden background**: Mint pins you already have - can still be used for trading
 
 ## 🚀 Pin trading warp 
 
