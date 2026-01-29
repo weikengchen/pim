@@ -8,8 +8,6 @@ import java.util.Optional;
 
 public class Algorithm {
 
-  private static final AlgorithmDebugLogger debugLogger = new AlgorithmDebugLogger();
-
   public static class DPResult {
     public final Optional<AlgorithmError> error;
     public final Optional<Double> value;
@@ -189,32 +187,6 @@ public class Algorithm {
   }
 
   public static DPResult runDynamicProgramming(String seriesName, PinSeriesCounts counts) {
-    // Enable debug logging for this series (creates separate file)
-    debugLogger.enable(seriesName);
-    debugLogger.logInfo("Starting calculation for series: " + seriesName);
-    debugLogger.logInfo(
-        "Start Point - Signature: "
-            + counts.startPoint.signature
-            + ", Deluxe: "
-            + counts.startPoint.deluxe
-            + ", Rare: "
-            + counts.startPoint.rare
-            + ", Uncommon: "
-            + counts.startPoint.uncommon
-            + ", Common: "
-            + counts.startPoint.common);
-    debugLogger.logInfo(
-        "Goal - Signature: "
-            + counts.goal.signature
-            + ", Deluxe: "
-            + counts.goal.deluxe
-            + ", Rare: "
-            + counts.goal.rare
-            + ", Uncommon: "
-            + counts.goal.uncommon
-            + ", Common: "
-            + counts.goal.common);
-
     DPStartPoint startPoint = counts.startPoint;
     DPGoal goal = counts.goal;
 
@@ -247,9 +219,6 @@ public class Algorithm {
 
               if (sum == 0) {
                 currLayer.put(state, 0d);
-                if (debugLogger.isEnabled()) {
-                  debugLogger.logInfo("BASE_CASE: " + formatState(state) + " = 0.0");
-                }
               } else {
                 double probGetSignature = 0.0;
                 double probGetDeluxe = 0.0;
@@ -265,14 +234,6 @@ public class Algorithm {
                     probGetSignature = calculateProbabilityGetSignature(goal, s);
                     double contribution = probGetSignature * prevLayer.get(prevState);
                     expectedValue += contribution;
-                    if (debugLogger.isEnabled()) {
-                      debugLogger.logComputationStep(
-                          formatState(prevState),
-                          formatState(state),
-                          probGetSignature,
-                          contribution,
-                          expectedValue);
-                    }
                   }
                 }
 
@@ -282,14 +243,6 @@ public class Algorithm {
                     probGetDeluxe = calculateProbabilityGetDeluxe(goal, d);
                     double contribution = probGetDeluxe * prevLayer.get(prevState);
                     expectedValue += contribution;
-                    if (debugLogger.isEnabled()) {
-                      debugLogger.logComputationStep(
-                          formatState(prevState),
-                          formatState(state),
-                          probGetDeluxe,
-                          contribution,
-                          expectedValue);
-                    }
                   }
                 }
 
@@ -299,14 +252,6 @@ public class Algorithm {
                     probGetRare = calculateProbabilityGetRare(goal, r);
                     double contribution = probGetRare * prevLayer.get(prevState);
                     expectedValue += contribution;
-                    if (debugLogger.isEnabled()) {
-                      debugLogger.logComputationStep(
-                          formatState(prevState),
-                          formatState(state),
-                          probGetRare,
-                          contribution,
-                          expectedValue);
-                    }
                   }
                 }
 
@@ -316,14 +261,6 @@ public class Algorithm {
                     probGetUncommon = calculateProbabilityGetUncommon(goal, u);
                     double contribution = probGetUncommon * prevLayer.get(prevState);
                     expectedValue += contribution;
-                    if (debugLogger.isEnabled()) {
-                      debugLogger.logComputationStep(
-                          formatState(prevState),
-                          formatState(state),
-                          probGetUncommon,
-                          contribution,
-                          expectedValue);
-                    }
                   }
                 }
 
@@ -333,14 +270,6 @@ public class Algorithm {
                     probGetCommon = calculateProbabilityGetCommon(goal, c);
                     double contribution = probGetCommon * prevLayer.get(prevState);
                     expectedValue += contribution;
-                    if (debugLogger.isEnabled()) {
-                      debugLogger.logComputationStep(
-                          formatState(prevState),
-                          formatState(state),
-                          probGetCommon,
-                          contribution,
-                          expectedValue);
-                    }
                   }
                 }
 
@@ -350,7 +279,7 @@ public class Algorithm {
                         + probGetRare
                         + probGetUncommon
                         + probGetCommon;
-                
+
                 expectedValue *= 3f;
                 expectedValue /= 31f;
 
@@ -359,23 +288,10 @@ public class Algorithm {
 
                 expectedValue = (expectedValue + 1) / probSum;
                 currLayer.put(state, expectedValue);
-
-                if (debugLogger.isEnabled()) {
-                  debugLogger.logInfo(
-                      "FINAL_COMPUTATION: "
-                          + formatState(state)
-                          + " = "
-                          + String.format("%.6f", expectedValue));
-                }
               }
             }
           }
         }
-      }
-
-      // Log layer completion
-      if (debugLogger.isEnabled()) {
-        debugLogger.logLayerCompletion(sum, currLayer.size());
       }
 
       // Swap layers for next iteration
@@ -386,15 +302,10 @@ public class Algorithm {
 
     DPState finalState = new DPState(maxSignature, maxDeluxe, maxRare, maxUncommon, maxCommon);
     if (!prevLayer.containsKey(finalState)) {
-      debugLogger.logError("Final state not found in computed layers");
-      debugLogger.disable();
       return DPResult.error(AlgorithmError.DYNAMIC_PROGRAMMING_FAILURE);
     }
 
     double finalValue = prevLayer.get(finalState);
-    debugLogger.logFinalResult(finalState, finalValue);
-    debugLogger.logInfo("Calculation completed successfully for series: " + seriesName);
-    debugLogger.disable();
 
     return DPResult.success(finalValue);
   }
@@ -417,12 +328,6 @@ public class Algorithm {
 
   private static double calculateProbabilityGetCommon(DPGoal goal, int currentCount) {
     return (double) currentCount * 16 / (double) goal.weightedSum;
-  }
-
-  private static String formatState(DPState state) {
-    return String.format(
-        "(s=%d, d=%d, r=%d, u=%d, c=%d)",
-        state.signature, state.deluxe, state.rare, state.uncommon, state.common);
   }
 
   public static PinSeriesCounts initializeSeriesCounts(String seriesName) {
