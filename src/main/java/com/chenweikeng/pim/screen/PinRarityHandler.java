@@ -12,6 +12,7 @@ import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponents;
@@ -113,6 +114,9 @@ public class PinRarityHandler {
   }
 
   public void handleContainerSetSlotData(ClientboundContainerSetSlotPacket packet) {
+    if (packet.getContainerId() == 0) {
+      return;
+    }
     if (packet.getSlot() >= 45) {
       return;
     }
@@ -132,6 +136,10 @@ public class PinRarityHandler {
 
   public PinSeriesEntry getSeriesEntry(String seriesName) {
     return seriesMap.get(seriesName);
+  }
+
+  public java.util.Set<String> getAllSeriesNames() {
+    return seriesMap.keySet();
   }
 
   public void tick() {
@@ -170,6 +178,20 @@ public class PinRarityHandler {
     }
   }
 
+  public void reset() {
+    seriesMap.clear();
+    pendingUpdatedCount = 0;
+    hasPendingChanges = false;
+
+    if (dataFile.exists()) {
+      if (dataFile.delete()) {
+        PimClient.LOGGER.info("[Pim] Pin rarity data file deleted successfully");
+      } else {
+        PimClient.LOGGER.warn("[Pim] Failed to delete pin rarity data file");
+      }
+    }
+  }
+
   private PinSeriesEntry parsePinSeriesEntry(ItemStack stack) {
     DataComponentMap map = stack.getComponents();
     Component customName = map.get(DataComponents.CUSTOM_NAME);
@@ -179,7 +201,7 @@ public class PinRarityHandler {
       return null;
     }
 
-    String name = customName.getString();
+    String name = ChatFormatting.stripFormatting(customName.getString());
     if (!name.startsWith("Pin Pack - ")) {
       return null;
     }
@@ -190,7 +212,7 @@ public class PinRarityHandler {
 
     if (lore != null) {
       for (Component line : lore.lines()) {
-        String loreText = line.getString();
+        String loreText = ChatFormatting.stripFormatting(line.getString());
         if (loreText.contains("Available at pin shops")) {
           entry.availability = Availability.REQUIRED;
         } else if (loreText.contains("No longer sold")) {

@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponents;
@@ -75,6 +76,9 @@ public class PinBookHandler {
   }
 
   public void handleContainerData(ClientboundContainerSetContentPacket packet) {
+    if (packet.containerId() == 0) {
+      return;
+    }
     List<ItemStack> items = packet.items();
 
     for (int i = 0; i < Math.min(items.size(), 45); i++) {
@@ -89,6 +93,9 @@ public class PinBookHandler {
   }
 
   public void handleContainerSetSlotData(ClientboundContainerSetSlotPacket packet) {
+    if (packet.getContainerId() == 0) {
+      return;
+    }
     if (packet.getSlot() >= 45) {
       return;
     }
@@ -181,7 +188,7 @@ public class PinBookHandler {
       return null;
     }
 
-    String name = customName.getString();
+    String name = ChatFormatting.stripFormatting(customName.getString());
     if (!name.startsWith("Pin Pack - ")) {
       return null;
     }
@@ -205,6 +212,21 @@ public class PinBookHandler {
 
   public PinBookEntry getBookEntry(String seriesName) {
     return bookMap.get(seriesName);
+  }
+
+  public void reset() {
+    bookMap.clear();
+    pendingNewSeries.clear();
+    pendingMissingSeries.clear();
+    tickCount = 0;
+
+    if (dataFile.exists()) {
+      if (dataFile.delete()) {
+        PimClient.LOGGER.info("[Pim] Pin book data file deleted successfully");
+      } else {
+        PimClient.LOGGER.warn("[Pim] Failed to delete pin book data file");
+      }
+    }
   }
 
   public static class PinBookEntry {

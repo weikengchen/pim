@@ -37,19 +37,19 @@ public class GuiMixin {
       return;
     }
 
-    String itemName = itemStack.getHoverName().getString();
-
     PinDetailHandler.PinDetailEntry onBoardEntry =
         PinDetailHandler.getInstance().parsePinEntry(itemStack);
     PinRarityHandler.PinSeriesEntry pinSeriesEntry =
         PinRarityHandler.getInstance().getSeriesEntry(pinSeries);
-    PinDetailHandler.PinDetailEntry pinDetailEntry =
-        PinDetailHandler.getInstance().findDetailEntry(pinSeries, itemName);
 
     if (onBoardEntry != null
         && onBoardEntry.condition == PinDetailHandler.PinCondition.MINT
         && pinSeriesEntry != null
         && pinSeriesEntry.availability == PinRarityHandler.Availability.REQUIRED) {
+
+      PinDetailHandler.PinDetailEntry pinDetailEntry =
+          PinDetailHandler.getInstance().findDetailEntry(pinSeries, onBoardEntry.pinName);
+
       if (pinDetailEntry != null
           && (pinDetailEntry.condition == PinDetailHandler.PinCondition.LOCKED
               || pinDetailEntry.condition == PinDetailHandler.PinCondition.NOTMINT)) {

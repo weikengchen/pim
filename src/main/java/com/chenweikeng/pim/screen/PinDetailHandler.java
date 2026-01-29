@@ -1,6 +1,7 @@
 package com.chenweikeng.pim.screen;
 
 import com.chenweikeng.pim.PimClient;
+import com.chenweikeng.pim.pin.Rarity;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -12,6 +13,7 @@ import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponents;
@@ -66,9 +68,15 @@ public class PinDetailHandler {
     if (existingEntry == null) {
       seriesMap.put(parsedEntry.pinName, parsedEntry);
       added = true;
-    } else if (existingEntry.condition != parsedEntry.condition) {
-      existingEntry.condition = parsedEntry.condition;
-      updated = true;
+    } else {
+      if (existingEntry.condition != parsedEntry.condition) {
+        existingEntry.condition = parsedEntry.condition;
+        updated = true;
+      }
+      if (parsedEntry.rarity != null && !parsedEntry.rarity.equals(existingEntry.rarity)) {
+        existingEntry.rarity = parsedEntry.rarity;
+        updated = true;
+      }
     }
 
     if (added) {
@@ -114,6 +122,9 @@ public class PinDetailHandler {
   }
 
   public void handleContainerSetSlotData(ClientboundContainerSetSlotPacket packet) {
+    if (packet.getContainerId() == 0) {
+      return;
+    }
     if (packet.getSlot() >= 45) {
       return;
     }
@@ -132,6 +143,10 @@ public class PinDetailHandler {
   }
 
   public void handleContainerData(ClientboundContainerSetContentPacket packet) {
+    if (packet.containerId() == 0) {
+      return;
+    }
+
     List<ItemStack> items = packet.items();
 
     for (int i = 0; i < Math.min(items.size(), 45); i++) {
@@ -191,11 +206,11 @@ public class PinDetailHandler {
     }
 
     PinDetailEntry entry = new PinDetailEntry();
-    entry.pinName = customName.getString();
+    entry.pinName = ChatFormatting.stripFormatting(customName.getString());
     boolean isPinEntry = false;
 
     for (Component line : lore.lines()) {
-      String loreText = line.getString();
+      String loreText = ChatFormatting.stripFormatting(line.getString());
 
       if (loreText.startsWith("Status : ")) {
         String status = loreText.substring("Status : ".length());
@@ -211,6 +226,9 @@ public class PinDetailHandler {
           entry.condition = PinCondition.NOTMINT;
         }
         isPinEntry = true;
+      } else if (loreText.startsWith("Pin Rarity: ")) {
+        String rarity = loreText.substring("Pin Rarity: ".length());
+        entry.rarity = Rarity.fromString(rarity);
       }
     }
 
@@ -230,7 +248,7 @@ public class PinDetailHandler {
     }
 
     for (Component line : lore.lines()) {
-      String loreText = line.getString();
+      String loreText = ChatFormatting.stripFormatting(line.getString());
       if (loreText.startsWith("Pin Series: ")) {
         return loreText.substring("Pin Series: ".length());
       }
@@ -247,8 +265,25 @@ public class PinDetailHandler {
     return seriesMap.get(pinName);
   }
 
+  public void reset() {
+    detailMap.clear();
+    pendingUpdatedCountBySeries.clear();
+    hasPendingChanges = false;
+    tickCount = 0;
+    currentOpenedPinSeries = null;
+
+    if (dataFile.exists()) {
+      if (dataFile.delete()) {
+        PimClient.LOGGER.info("[Pim] Pin detail data file deleted successfully");
+      } else {
+        PimClient.LOGGER.warn("[Pim] Failed to delete pin detail data file");
+      }
+    }
+  }
+
   public static class PinDetailEntry {
     public String pinName;
     public PinCondition condition;
+    public Rarity rarity;
   }
 }

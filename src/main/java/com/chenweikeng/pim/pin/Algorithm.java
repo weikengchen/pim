@@ -1,0 +1,431 @@
+package com.chenweikeng.pim.pin;
+
+import com.chenweikeng.pim.screen.PinDetailHandler;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+
+public class Algorithm {
+
+  private static final AlgorithmDebugLogger debugLogger = new AlgorithmDebugLogger();
+
+  public static class DPResult {
+    public final Optional<AlgorithmError> error;
+    public final Optional<Double> value;
+
+    private DPResult(Optional<AlgorithmError> error, Optional<Double> value) {
+      this.error = error;
+      this.value = value;
+    }
+
+    public static DPResult error(AlgorithmError error) {
+      return new DPResult(Optional.of(error), Optional.empty());
+    }
+
+    public static DPResult success(double value) {
+      return new DPResult(Optional.empty(), Optional.of(value));
+    }
+
+    public boolean isError() {
+      return error.isPresent();
+    }
+
+    public boolean isSuccess() {
+      return value.isPresent();
+    }
+  }
+
+  public static class DPGoal {
+    public final int signature;
+    public final int deluxe;
+    public final int rare;
+    public final int uncommon;
+    public final int common;
+
+    public final int weightedSum;
+
+    public DPGoal(int signature, int deluxe, int rare, int uncommon, int common) {
+      this.signature = signature;
+      this.deluxe = deluxe;
+      this.rare = rare;
+      this.uncommon = uncommon;
+      this.common = common;
+
+      this.weightedSum =
+          this.signature + this.deluxe * 2 + this.rare * 4 + this.uncommon * 8 + this.common * 16;
+    }
+  }
+
+  public static class DPStartPoint {
+    public final int signature;
+    public final int deluxe;
+    public final int rare;
+    public final int uncommon;
+    public final int common;
+
+    public DPStartPoint(int signature, int deluxe, int rare, int uncommon, int common) {
+      this.signature = signature;
+      this.deluxe = deluxe;
+      this.rare = rare;
+      this.uncommon = uncommon;
+      this.common = common;
+    }
+  }
+
+  public static class PinSeriesCounts {
+    public DPGoal goal;
+    public DPStartPoint startPoint;
+
+    public PinSeriesCounts(DPGoal goal, DPStartPoint startPoint) {
+      this.goal = goal;
+      this.startPoint = startPoint;
+    }
+  }
+
+  public static class DPState {
+    public final int signature;
+    public final int deluxe;
+    public final int rare;
+    public final int uncommon;
+    public final int common;
+
+    public DPState(int signature, int deluxe, int rare, int uncommon, int common) {
+      this.signature = signature;
+      this.deluxe = deluxe;
+      this.rare = rare;
+      this.uncommon = uncommon;
+      this.common = common;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      DPState dpState = (DPState) o;
+      return signature == dpState.signature
+          && deluxe == dpState.deluxe
+          && rare == dpState.rare
+          && uncommon == dpState.uncommon
+          && common == dpState.common;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(signature, deluxe, rare, uncommon, common);
+    }
+  }
+
+  public static Optional<AlgorithmError> calculateSeriesCounts(
+      String seriesName, PinSeriesCounts counts) {
+    Map<String, PinDetailHandler.PinDetailEntry> seriesDetails =
+        PinDetailHandler.getInstance().getSeriesDetails(seriesName);
+
+    if (seriesDetails == null) {
+      return Optional.of(AlgorithmError.INCOMPLETE_RARITY_INFORMATION);
+    }
+
+    int totalSignature = 0;
+    int totalDeluxe = 0;
+    int totalRare = 0;
+    int totalUncommon = 0;
+    int totalCommon = 0;
+    int mintSignature = 0;
+    int mintDeluxe = 0;
+    int mintRare = 0;
+    int mintUncommon = 0;
+    int mintCommon = 0;
+
+    for (PinDetailHandler.PinDetailEntry entry : seriesDetails.values()) {
+      if (entry.rarity == null) {
+        return Optional.of(AlgorithmError.INCOMPLETE_RARITY_INFORMATION);
+      }
+
+      switch (entry.rarity) {
+        case SIGNATURE:
+          totalSignature++;
+          if (entry.condition == PinDetailHandler.PinCondition.MINT) {
+            mintSignature++;
+          }
+          break;
+        case DELUXE:
+          totalDeluxe++;
+          if (entry.condition == PinDetailHandler.PinCondition.MINT) {
+            mintDeluxe++;
+          }
+          break;
+        case RARE:
+          totalRare++;
+          if (entry.condition == PinDetailHandler.PinCondition.MINT) {
+            mintRare++;
+          }
+          break;
+        case UNCOMMON:
+          totalUncommon++;
+          if (entry.condition == PinDetailHandler.PinCondition.MINT) {
+            mintUncommon++;
+          }
+          break;
+        case COMMON:
+          totalCommon++;
+          if (entry.condition == PinDetailHandler.PinCondition.MINT) {
+            mintCommon++;
+          }
+          break;
+        default:
+          break;
+      }
+    }
+
+    counts.goal = new DPGoal(totalSignature, totalDeluxe, totalRare, totalUncommon, totalCommon);
+    counts.startPoint =
+        new DPStartPoint(mintSignature, mintDeluxe, mintRare, mintUncommon, mintCommon);
+
+    return Optional.empty();
+  }
+
+  public static DPResult runDynamicProgramming(String seriesName, PinSeriesCounts counts) {
+    // Enable debug logging for this series (creates separate file)
+    debugLogger.enable(seriesName);
+    debugLogger.logInfo("Starting calculation for series: " + seriesName);
+    debugLogger.logInfo(
+        "Start Point - Signature: "
+            + counts.startPoint.signature
+            + ", Deluxe: "
+            + counts.startPoint.deluxe
+            + ", Rare: "
+            + counts.startPoint.rare
+            + ", Uncommon: "
+            + counts.startPoint.uncommon
+            + ", Common: "
+            + counts.startPoint.common);
+    debugLogger.logInfo(
+        "Goal - Signature: "
+            + counts.goal.signature
+            + ", Deluxe: "
+            + counts.goal.deluxe
+            + ", Rare: "
+            + counts.goal.rare
+            + ", Uncommon: "
+            + counts.goal.uncommon
+            + ", Common: "
+            + counts.goal.common);
+
+    DPStartPoint startPoint = counts.startPoint;
+    DPGoal goal = counts.goal;
+
+    int maxSignature = goal.signature - startPoint.signature;
+    int maxDeluxe = goal.deluxe - startPoint.deluxe;
+    int maxRare = goal.rare - startPoint.rare;
+    int maxUncommon = goal.uncommon - startPoint.uncommon;
+    int maxCommon = goal.common - startPoint.common;
+
+    int maxSum = maxSignature + maxDeluxe + maxRare + maxUncommon + maxCommon;
+
+    // Use two layers for space optimization - only current and previous sum layers
+    Map<DPState, Double> prevLayer = new HashMap<>();
+    Map<DPState, Double> currLayer = new HashMap<>();
+
+    for (int sum = 0; sum <= maxSum; sum++) {
+      // Clear current layer and swap layers for next iteration
+      currLayer.clear();
+
+      for (int s = 0; s <= Math.min(sum, maxSignature); s++) {
+        for (int d = 0; d <= Math.min(sum - s, maxDeluxe); d++) {
+          for (int r = 0; r <= Math.min(sum - s - d, maxRare); r++) {
+            for (int u = 0; u <= Math.min(sum - s - d - r, maxUncommon); u++) {
+              int c = sum - s - d - r - u;
+              if (c > maxCommon) {
+                continue;
+              }
+
+              DPState state = new DPState(s, d, r, u, c);
+
+              if (sum == 0) {
+                currLayer.put(state, 0d);
+                if (debugLogger.isEnabled()) {
+                  debugLogger.logInfo("BASE_CASE: " + formatState(state) + " = 0.0");
+                }
+              } else {
+                double probGetSignature = 0.0;
+                double probGetDeluxe = 0.0;
+                double probGetRare = 0.0;
+                double probGetUncommon = 0.0;
+                double probGetCommon = 0.0;
+
+                double expectedValue = 0.0;
+
+                if (s > 0) {
+                  DPState prevState = new DPState(s - 1, d, r, u, c);
+                  if (prevLayer.containsKey(prevState)) {
+                    probGetSignature = calculateProbabilityGetSignature(goal, s);
+                    double contribution = probGetSignature * prevLayer.get(prevState);
+                    expectedValue += contribution;
+                    if (debugLogger.isEnabled()) {
+                      debugLogger.logComputationStep(
+                          formatState(prevState),
+                          formatState(state),
+                          probGetSignature,
+                          contribution,
+                          expectedValue);
+                    }
+                  }
+                }
+
+                if (d > 0) {
+                  DPState prevState = new DPState(s, d - 1, r, u, c);
+                  if (prevLayer.containsKey(prevState)) {
+                    probGetDeluxe = calculateProbabilityGetDeluxe(goal, d);
+                    double contribution = probGetDeluxe * prevLayer.get(prevState);
+                    expectedValue += contribution;
+                    if (debugLogger.isEnabled()) {
+                      debugLogger.logComputationStep(
+                          formatState(prevState),
+                          formatState(state),
+                          probGetDeluxe,
+                          contribution,
+                          expectedValue);
+                    }
+                  }
+                }
+
+                if (r > 0) {
+                  DPState prevState = new DPState(s, d, r - 1, u, c);
+                  if (prevLayer.containsKey(prevState)) {
+                    probGetRare = calculateProbabilityGetRare(goal, r);
+                    double contribution = probGetRare * prevLayer.get(prevState);
+                    expectedValue += contribution;
+                    if (debugLogger.isEnabled()) {
+                      debugLogger.logComputationStep(
+                          formatState(prevState),
+                          formatState(state),
+                          probGetRare,
+                          contribution,
+                          expectedValue);
+                    }
+                  }
+                }
+
+                if (u > 0) {
+                  DPState prevState = new DPState(s, d, r, u - 1, c);
+                  if (prevLayer.containsKey(prevState)) {
+                    probGetUncommon = calculateProbabilityGetUncommon(goal, u);
+                    double contribution = probGetUncommon * prevLayer.get(prevState);
+                    expectedValue += contribution;
+                    if (debugLogger.isEnabled()) {
+                      debugLogger.logComputationStep(
+                          formatState(prevState),
+                          formatState(state),
+                          probGetUncommon,
+                          contribution,
+                          expectedValue);
+                    }
+                  }
+                }
+
+                if (c > 0) {
+                  DPState prevState = new DPState(s, d, r, u, c - 1);
+                  if (prevLayer.containsKey(prevState)) {
+                    probGetCommon = calculateProbabilityGetCommon(goal, c);
+                    double contribution = probGetCommon * prevLayer.get(prevState);
+                    expectedValue += contribution;
+                    if (debugLogger.isEnabled()) {
+                      debugLogger.logComputationStep(
+                          formatState(prevState),
+                          formatState(state),
+                          probGetCommon,
+                          contribution,
+                          expectedValue);
+                    }
+                  }
+                }
+
+                double probSum =
+                    probGetSignature
+                        + probGetDeluxe
+                        + probGetRare
+                        + probGetUncommon
+                        + probGetCommon;
+                
+                expectedValue *= 3f;
+                expectedValue /= 31f;
+
+                probSum *= 3f;
+                probSum /= 31f;
+
+                expectedValue = (expectedValue + 1) / probSum;
+                currLayer.put(state, expectedValue);
+
+                if (debugLogger.isEnabled()) {
+                  debugLogger.logInfo(
+                      "FINAL_COMPUTATION: "
+                          + formatState(state)
+                          + " = "
+                          + String.format("%.6f", expectedValue));
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Log layer completion
+      if (debugLogger.isEnabled()) {
+        debugLogger.logLayerCompletion(sum, currLayer.size());
+      }
+
+      // Swap layers for next iteration
+      Map<DPState, Double> temp = prevLayer;
+      prevLayer = currLayer;
+      currLayer = temp;
+    }
+
+    DPState finalState = new DPState(maxSignature, maxDeluxe, maxRare, maxUncommon, maxCommon);
+    if (!prevLayer.containsKey(finalState)) {
+      debugLogger.logError("Final state not found in computed layers");
+      debugLogger.disable();
+      return DPResult.error(AlgorithmError.DYNAMIC_PROGRAMMING_FAILURE);
+    }
+
+    double finalValue = prevLayer.get(finalState);
+    debugLogger.logFinalResult(finalState, finalValue);
+    debugLogger.logInfo("Calculation completed successfully for series: " + seriesName);
+    debugLogger.disable();
+
+    return DPResult.success(finalValue);
+  }
+
+  private static double calculateProbabilityGetSignature(DPGoal goal, int currentCount) {
+    return (double) currentCount / (double) goal.weightedSum;
+  }
+
+  private static double calculateProbabilityGetDeluxe(DPGoal goal, int currentCount) {
+    return (double) currentCount * 2 / (double) goal.weightedSum;
+  }
+
+  private static double calculateProbabilityGetRare(DPGoal goal, int currentCount) {
+    return (double) currentCount * 4 / (double) goal.weightedSum;
+  }
+
+  private static double calculateProbabilityGetUncommon(DPGoal goal, int currentCount) {
+    return (double) currentCount * 8 / (double) goal.weightedSum;
+  }
+
+  private static double calculateProbabilityGetCommon(DPGoal goal, int currentCount) {
+    return (double) currentCount * 16 / (double) goal.weightedSum;
+  }
+
+  private static String formatState(DPState state) {
+    return String.format(
+        "(s=%d, d=%d, r=%d, u=%d, c=%d)",
+        state.signature, state.deluxe, state.rare, state.uncommon, state.common);
+  }
+
+  public static PinSeriesCounts initializeSeriesCounts(String seriesName) {
+    return new PinSeriesCounts(new DPGoal(0, 0, 0, 0, 0), new DPStartPoint(0, 0, 0, 0, 0));
+  }
+}
