@@ -133,42 +133,7 @@ public class AbstractContainerScreenMixin {
           }
         }
       }
-    } else if (titleStr.contains("\u4e54") && titleStr.contains("\u9dfc")) {
-      if (slot.container instanceof Inventory) {
-        return;
-      }
-
-      String pinSeries = PinDetailHandler.getInstance().parsePinSeriesFromLore(itemStack);
-      if (pinSeries == null) {
-        return;
-      }
-
-      String itemName = itemStack.getHoverName().getString();
-
-      PinDetailHandler.PinDetailEntry onBoardEntry =
-          PinDetailHandler.getInstance().parsePinEntry(itemStack);
-      PinRarityHandler.PinSeriesEntry pinSeriesEntry =
-          PinRarityHandler.getInstance().getSeriesEntry(pinSeries);
-      PinDetailHandler.PinDetailEntry pinDetailEntry =
-          PinDetailHandler.getInstance().findDetailEntry(pinSeries, itemName);
-
-      if (onBoardEntry != null
-          && onBoardEntry.condition == PinDetailHandler.PinCondition.MINT
-          && pinSeriesEntry != null
-          && pinSeriesEntry.availability == PinRarityHandler.Availability.REQUIRED
-          && pinDetailEntry != null
-          && (pinDetailEntry.condition == PinDetailHandler.PinCondition.LOCKED
-              || pinDetailEntry.condition == PinDetailHandler.PinCondition.NOTMINT)) {
-        renderItemWithFills(guiGraphics, slot, itemStack, font, 0xFF00FF00, null, ci);
-      } else {
-        renderItemWithFills(guiGraphics, slot, itemStack, font, null, 0x80FF00FF, ci);
-      }
-    } else if (titleStr.contains("\u4e9f")
-        || titleStr.contains("\u4ea0")
-        || titleStr.contains("\u4ea1")
-        || titleStr.contains("\u4ea2")
-        || titleStr.contains("\u4ea3")
-        || titleStr.contains("\u4ea4")) {
+    } else {
       if (slot.container instanceof Inventory) {
         return;
       }

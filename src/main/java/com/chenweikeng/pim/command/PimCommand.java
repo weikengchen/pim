@@ -9,6 +9,7 @@ import com.chenweikeng.pim.screen.PinDetailHandler;
 import com.chenweikeng.pim.screen.PinRarityHandler;
 import com.chenweikeng.pim.tracker.BossBarTracker;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -64,7 +65,7 @@ public class PimCommand {
                       }));
 
           dispatcher.register(
-              ClientCommandManager.literal("pim:calculate")
+              ClientCommandManager.literal("pim:compute")
                   .executes(
                       context -> {
                         context
@@ -98,6 +99,11 @@ public class PimCommand {
               return thread;
             }
           });
+
+  private static final ConcurrentHashMap<String, Algorithm.DPStartPoint> cachedStartPoints =
+      new ConcurrentHashMap<>();
+
+  private static final ConcurrentHashMap<String, DPResult> cachedResults = new ConcurrentHashMap<>();
 
   private static void startCalculationThread(FabricClientCommandSource source) {
     calculationExecutor.submit(
@@ -171,20 +177,6 @@ public class PimCommand {
       }
 
       processedSeries++;
-      final int currentProgress = processedSeries;
-
-      Minecraft.getInstance()
-          .execute(
-              () -> {
-                source.sendFeedback(
-                    Component.literal(
-                        "§6✨ §e[Pim] §fCalculating series "
-                            + currentProgress
-                            + "/"
-                            + finalTotalSeries
-                            + ": "
-                            + finalSeriesName));
-              });
 
       try {
         // Get pin counts for this series
@@ -200,27 +192,38 @@ public class PimCommand {
           continue;
         }
 
-        // Run the algorithm
-        DPResult result = Algorithm.runDynamicProgramming(finalSeriesName, counts);
+        DPResult result;
+
+        Algorithm.DPStartPoint cachedStartPoint = cachedStartPoints.get(finalSeriesName);
+
+        if (cachedStartPoint != null && cachedStartPoint.equals(counts.startPoint)) {
+          result = cachedResults.get(finalSeriesName);
+        } else {
+          result = Algorithm.runDynamicProgramming(finalSeriesName, counts);
+          cachedStartPoints.put(finalSeriesName, counts.startPoint);
+          cachedResults.put(finalSeriesName, result);
+        }
+
+        final DPResult finalResult = result;
 
         Minecraft.getInstance()
             .execute(
                 () -> {
-                  if (result.isSuccess()) {
-                    double value = result.value.get();
+                  if (finalResult.isSuccess()) {
+                    double value = finalResult.value.get();
                     source.sendFeedback(
                         Component.literal(
                             "§6✨ §e[Pim] §a"
                                 + finalSeriesName
                                 + ": §f"
                                 + String.format("%.2f", value)));
-                  } else if (result.isError()) {
+                  } else if (finalResult.isError()) {
                     source.sendFeedback(
                         Component.literal(
                             "§6✨ §e[Pim] §cError calculating "
                                 + finalSeriesName
                                 + ": "
-                                + result.error.get()));
+                                + finalResult.error.get()));
                   }
                 });
 
@@ -283,6 +286,13 @@ public class PimCommand {
       if (entry.rarity == null) {
         return false;
       }
+    }
+
+    // Check if series is REQUIRED (ignore OPTIONAL series)
+    PinRarityHandler.PinSeriesEntry seriesEntry =
+        PinRarityHandler.getInstance().getSeriesEntry(seriesName);
+    if (seriesEntry == null || seriesEntry.availability != PinRarityHandler.Availability.REQUIRED) {
+      return false;
     }
 
     return true;

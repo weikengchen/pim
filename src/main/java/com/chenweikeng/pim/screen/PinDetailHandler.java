@@ -229,6 +229,9 @@ public class PinDetailHandler {
       } else if (loreText.startsWith("Pin Rarity: ")) {
         String rarity = loreText.substring("Pin Rarity: ".length());
         entry.rarity = Rarity.fromString(rarity);
+      } else if (loreText.startsWith("Rarity : ")) {
+        String rarity = loreText.substring("Rarity : ".length());
+        entry.rarity = Rarity.fromString(rarity);
       }
     }
 

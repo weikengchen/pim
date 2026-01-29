@@ -69,6 +69,27 @@ public class Algorithm {
       this.uncommon = uncommon;
       this.common = common;
     }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      DPStartPoint that = (DPStartPoint) o;
+      return signature == that.signature
+          && deluxe == that.deluxe
+          && rare == that.rare
+          && uncommon == that.uncommon
+          && common == that.common;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(signature, deluxe, rare, uncommon, common);
+    }
   }
 
   public static class PinSeriesCounts {
