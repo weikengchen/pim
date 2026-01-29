@@ -14,7 +14,7 @@ public class PimClient implements ClientModInitializer {
   @Override
   public void onInitializeClient() {
     LOGGER.info("Pim would like to welcome you.");
-    PimCommand.register();
+    PimCommand.registerCommands();
     BossBarTracker.getInstance();
   }
 }

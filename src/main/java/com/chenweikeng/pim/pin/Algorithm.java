@@ -11,18 +11,59 @@ public class Algorithm {
   public static class DPResult {
     public final Optional<AlgorithmError> error;
     public final Optional<Double> value;
+    public final Optional<Double> whatIfOneMoreSignature;
+    public final Optional<Double> whatIfOneMoreDeluxe;
+    public final Optional<Double> whatIfOneMoreRare;
+    public final Optional<Double> whatIfOneMoreUncommon;
+    public final Optional<Double> whatIfOneMoreCommon;
 
-    private DPResult(Optional<AlgorithmError> error, Optional<Double> value) {
+    private DPResult(
+        Optional<AlgorithmError> error,
+        Optional<Double> value,
+        Optional<Double> whatIfOneMoreSignature,
+        Optional<Double> whatIfOneMoreDeluxe,
+        Optional<Double> whatIfOneMoreRare,
+        Optional<Double> whatIfOneMoreUncommon,
+        Optional<Double> whatIfOneMoreCommon) {
       this.error = error;
       this.value = value;
+      this.whatIfOneMoreSignature = whatIfOneMoreSignature;
+      this.whatIfOneMoreDeluxe = whatIfOneMoreDeluxe;
+      this.whatIfOneMoreRare = whatIfOneMoreRare;
+      this.whatIfOneMoreUncommon = whatIfOneMoreUncommon;
+      this.whatIfOneMoreCommon = whatIfOneMoreCommon;
     }
 
     public static DPResult error(AlgorithmError error) {
-      return new DPResult(Optional.of(error), Optional.empty());
+      return new DPResult(
+          Optional.of(error),
+          Optional.empty(),
+          Optional.empty(),
+          Optional.empty(),
+          Optional.empty(),
+          Optional.empty(),
+          Optional.empty());
+    }
+
+    public static DPResult success(
+        double value,
+        Double whatIfOneMoreSignature,
+        Double whatIfOneMoreDeluxe,
+        Double whatIfOneMoreRare,
+        Double whatIfOneMoreUncommon,
+        Double whatIfOneMoreCommon) {
+      return new DPResult(
+          Optional.empty(),
+          Optional.of(value),
+          Optional.ofNullable(whatIfOneMoreSignature),
+          Optional.ofNullable(whatIfOneMoreDeluxe),
+          Optional.ofNullable(whatIfOneMoreRare),
+          Optional.ofNullable(whatIfOneMoreUncommon),
+          Optional.ofNullable(whatIfOneMoreCommon));
     }
 
     public static DPResult success(double value) {
-      return new DPResult(Optional.empty(), Optional.of(value));
+      return success(value, null, null, null, null, null);
     }
 
     public boolean isError() {
@@ -328,7 +369,60 @@ public class Algorithm {
 
     double finalValue = prevLayer.get(finalState);
 
-    return DPResult.success(finalValue);
+    // Calculate "what if" deltas for each rarity type by looking at previous states
+    // The delta represents the savings (finalValue - whatIfValue) - how many draws you'd save
+    // by having one more pin of that type
+    Double deltaSignature = null;
+    Double deltaDeluxe = null;
+    Double deltaRare = null;
+    Double deltaUncommon = null;
+    Double deltaCommon = null;
+
+    // Only calculate deltas if we have room to add one more (i.e., current < goal)
+    // The delta is computed as: finalValue - whatIfValue
+    if (startPoint.signature < goal.signature && maxSignature > 0) {
+      DPState whatIfState =
+          new DPState(maxSignature - 1, maxDeluxe, maxRare, maxUncommon, maxCommon);
+      Double whatIfValue = prevLayer.get(whatIfState);
+      if (whatIfValue != null) {
+        deltaSignature = finalValue - whatIfValue;
+      }
+    }
+    if (startPoint.deluxe < goal.deluxe && maxDeluxe > 0) {
+      DPState whatIfState =
+          new DPState(maxSignature, maxDeluxe - 1, maxRare, maxUncommon, maxCommon);
+      Double whatIfValue = prevLayer.get(whatIfState);
+      if (whatIfValue != null) {
+        deltaDeluxe = finalValue - whatIfValue;
+      }
+    }
+    if (startPoint.rare < goal.rare && maxRare > 0) {
+      DPState whatIfState =
+          new DPState(maxSignature, maxDeluxe, maxRare - 1, maxUncommon, maxCommon);
+      Double whatIfValue = prevLayer.get(whatIfState);
+      if (whatIfValue != null) {
+        deltaRare = finalValue - whatIfValue;
+      }
+    }
+    if (startPoint.uncommon < goal.uncommon && maxUncommon > 0) {
+      DPState whatIfState =
+          new DPState(maxSignature, maxDeluxe, maxRare, maxUncommon - 1, maxCommon);
+      Double whatIfValue = prevLayer.get(whatIfState);
+      if (whatIfValue != null) {
+        deltaUncommon = finalValue - whatIfValue;
+      }
+    }
+    if (startPoint.common < goal.common && maxCommon > 0) {
+      DPState whatIfState =
+          new DPState(maxSignature, maxDeluxe, maxRare, maxUncommon, maxCommon - 1);
+      Double whatIfValue = prevLayer.get(whatIfState);
+      if (whatIfValue != null) {
+        deltaCommon = finalValue - whatIfValue;
+      }
+    }
+
+    return DPResult.success(
+        finalValue, deltaSignature, deltaDeluxe, deltaRare, deltaUncommon, deltaCommon);
   }
 
   private static double calculateProbabilityGetSignature(DPGoal goal, int currentCount) {

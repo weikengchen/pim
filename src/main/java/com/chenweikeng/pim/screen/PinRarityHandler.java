@@ -1,6 +1,7 @@
 package com.chenweikeng.pim.screen;
 
 import com.chenweikeng.pim.PimClient;
+import com.chenweikeng.pim.pin.PinPackColor;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -57,9 +58,20 @@ public class PinRarityHandler {
     if (existingEntry == null) {
       seriesMap.put(parsedEntry.seriesName, parsedEntry);
       changed = true;
-    } else if (existingEntry.availability != parsedEntry.availability) {
-      existingEntry.availability = parsedEntry.availability;
-      changed = true;
+    } else {
+      if (existingEntry.availability != parsedEntry.availability) {
+        existingEntry.availability = parsedEntry.availability;
+        changed = true;
+      }
+      if (existingEntry.color == null && parsedEntry.color != null) {
+        existingEntry.color = parsedEntry.color;
+        changed = true;
+      } else if (existingEntry.color != null
+          && parsedEntry.color != null
+          && !existingEntry.color.equals(parsedEntry.color)) {
+        existingEntry.color = parsedEntry.color;
+        changed = true;
+      }
     }
 
     if (changed) {
@@ -221,11 +233,23 @@ public class PinRarityHandler {
       }
     }
 
+    List<Component> flatComponents = customName.toFlatList();
+    if (!flatComponents.isEmpty()) {
+      Component lastComponent = flatComponents.get(flatComponents.size() - 1);
+      String colorCode =
+          lastComponent.getStyle().getColor() != null
+              ? lastComponent.getStyle().getColor().toString()
+              : "null";
+      PinPackColor parsedColor = PinPackColor.fromString(colorCode);
+      entry.color = parsedColor;
+    }
+
     return entry;
   }
 
   public static class PinSeriesEntry {
     public String seriesName;
     public Availability availability;
+    public PinPackColor color;
   }
 }

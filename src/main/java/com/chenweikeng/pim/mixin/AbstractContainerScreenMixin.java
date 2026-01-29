@@ -102,7 +102,9 @@ public class AbstractContainerScreenMixin {
               screen.getMenu() != null
                   ? InventoryHandler.getInstance().getIncompleteSeries(screen.getMenu().slots)
                   : Set.of();
-          int fillColor = incompleteSeries.contains(seriesName) ? 0xFF00FF00 : 0xFFFFE000;
+          boolean isPinBoard = titleStr.contains("\u4e54") && titleStr.contains("\u9dfc");
+          int fillColor =
+              incompleteSeries.contains(seriesName) || isPinBoard ? 0xFF00FF00 : 0xFFFFE000;
           guiGraphics.fill(k, l, k + 16, l + 16, fillColor);
 
           if (!shouldBlink || System.nanoTime() % 1_000_000_000 < 500_000_000) {
