@@ -78,24 +78,13 @@ public class PimComputeCommand {
               () -> {
                 source.sendFeedback(
                     Component.literal(
-                        "§6✨ §e[Pim] §cNo pin series data available. Please open pin collection screens first."));
+                        "§6✨ §e[Pim] §cNo pin series data available. Please open /pinrarity and /pinbook first."));
               });
       return;
     }
 
     double totalDraws = 0;
     double totalPrice = 0;
-
-    // Send initial message
-    Minecraft.getInstance()
-        .execute(
-            () -> {
-              source.sendFeedback(
-                  Component.literal(
-                      "§6✨ §e[Pim] §fStarting calculation for "
-                          + allSeriesNames.size()
-                          + " series..."));
-            });
 
     // Process each series
     for (String seriesName : allSeriesNames) {

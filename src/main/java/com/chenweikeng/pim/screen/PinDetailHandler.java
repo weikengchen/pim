@@ -13,6 +13,7 @@ import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponentMap;
@@ -240,6 +241,10 @@ public class PinDetailHandler {
 
   public Map<String, PinDetailEntry> getSeriesDetails(String seriesName) {
     return detailMap.get(seriesName);
+  }
+
+  public Set<String> getAllSeriesNames() {
+    return detailMap.keySet();
   }
 
   public static String parsePinSeriesFromLore(ItemStack stack) {

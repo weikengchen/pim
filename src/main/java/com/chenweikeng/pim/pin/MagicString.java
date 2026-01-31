@@ -65,7 +65,7 @@ public class MagicString {
 
   public static String generate() {
     String checksum = generateChecksum();
-    Set<String> playerMintPins = getPlayerMintPins();
+    Set<String> playerMintPins = getPlayerInventoryMintPins();
     String bitmap = generateBitmap(playerMintPins);
     return PREFIX + checksum + bitmap;
   }
@@ -135,7 +135,7 @@ public class MagicString {
     return result.toString();
   }
 
-  public static Set<String> getPlayerMintPins() {
+  public static Set<String> getPlayerInventoryMintPins() {
     Set<String> mintPins = new HashSet<>();
     Minecraft mc = Minecraft.getInstance();
 
@@ -148,6 +148,37 @@ public class MagicString {
 
     for (ItemStack stack : items) {
       processItemStack(stack, mintPins);
+    }
+
+    return mintPins;
+  }
+
+  /**
+   * Gets player mint pins from PinDetail data instead of inventory. This provides a more reliable
+   * source of what pins the player actually has in mint condition.
+   */
+  public static Set<String> getPlayerDetailMintPins() {
+    Set<String> mintPins = new HashSet<>();
+    PinDetailHandler handler = PinDetailHandler.getInstance();
+
+    // Get all series from the detail handler
+    Set<String> allSeries = handler.getAllSeriesNames();
+
+    for (String seriesName : allSeries) {
+      Map<String, PinDetailHandler.PinDetailEntry> seriesPins =
+          handler.getSeriesDetails(seriesName);
+      if (seriesPins != null) {
+        // Check each pin in the series
+        for (Map.Entry<String, PinDetailHandler.PinDetailEntry> pinEntry : seriesPins.entrySet()) {
+          String pinName = pinEntry.getKey();
+          PinDetailHandler.PinDetailEntry detail = pinEntry.getValue();
+
+          // Only include pins that are in mint condition
+          if (detail.condition == PinDetailHandler.PinCondition.MINT) {
+            mintPins.add(seriesName + ":" + pinName);
+          }
+        }
+      }
     }
 
     return mintPins;

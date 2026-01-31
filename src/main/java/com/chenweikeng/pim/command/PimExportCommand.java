@@ -29,7 +29,7 @@ public class PimExportCommand {
             () -> {
               try {
                 String magicString = MagicString.generate();
-                Set<String> playerMintPins = MagicString.getPlayerMintPins();
+                Set<String> playerMintPins = MagicString.getPlayerInventoryMintPins();
                 TreeMap<String, Integer> seriesCounts = new TreeMap<>();
                 for (String pinKey : playerMintPins) {
                   String[] parts = pinKey.split(":");
