@@ -13,6 +13,8 @@ public class PimCommand {
           PimComputeCommand.register(dispatcher);
           PimExportCommand.register(dispatcher);
           PimMatchCommand.register(dispatcher);
+          PimViewCommand.register(dispatcher);
+          PimPriceCommand.register(dispatcher);
         });
   }
 }

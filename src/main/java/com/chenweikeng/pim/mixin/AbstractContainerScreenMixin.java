@@ -102,9 +102,7 @@ public class AbstractContainerScreenMixin {
               screen.getMenu() != null
                   ? InventoryHandler.getInstance().getIncompleteSeries(screen.getMenu().slots)
                   : Set.of();
-          boolean isPinBoard = titleStr.contains("\u4e54") && titleStr.contains("\u9dfc");
-          int fillColor =
-              incompleteSeries.contains(seriesName) || isPinBoard ? 0xFF00FF00 : 0xFFFFE000;
+          int fillColor = incompleteSeries.contains(seriesName) ? 0xFF00FF00 : 0xFFFFE000;
           guiGraphics.fill(k, l, k + 16, l + 16, fillColor);
 
           if (!shouldBlink || System.nanoTime() % 1_000_000_000 < 500_000_000) {
@@ -154,6 +152,8 @@ public class AbstractContainerScreenMixin {
       PinDetailHandler.PinDetailEntry pinDetailEntry =
           PinDetailHandler.getInstance().findDetailEntry(pinSeries, itemName);
 
+      boolean isPinBoard = titleStr.contains("\u4e54") && titleStr.contains("\u9dfc");
+
       if (onBoardEntry != null
           && onBoardEntry.condition == PinDetailHandler.PinCondition.MINT
           && pinSeriesEntry != null
@@ -163,7 +163,8 @@ public class AbstractContainerScreenMixin {
               || pinDetailEntry.condition == PinDetailHandler.PinCondition.NOTMINT)) {
         renderItemWithFills(guiGraphics, slot, itemStack, font, 0xFF00FF00, null, ci);
       } else if (onBoardEntry != null
-          && onBoardEntry.condition == PinDetailHandler.PinCondition.MINT) {
+          && onBoardEntry.condition == PinDetailHandler.PinCondition.MINT
+          && !isPinBoard) {
         renderItemWithFills(guiGraphics, slot, itemStack, font, 0xFFFFE000, 0x80FFE000, ci);
       } else {
         renderItemWithFills(guiGraphics, slot, itemStack, font, null, 0x80FF00FF, ci);

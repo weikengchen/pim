@@ -335,13 +335,13 @@ public class PimComputeCommand {
     }
   }
 
-  private static String formatPrice(double price) {
-    if (price >= 1_000_000) {
-      return String.format("%.1fM", price / 1_000_000);
-    } else if (price >= 1_000) {
-      return String.format("%.1fK", price / 1_000);
+  private static String formatPrice(double value) {
+    if (value >= 1_000_000) {
+      return String.format("%.1fM", value / 1_000_000);
+    } else if (value >= 1_000) {
+      return String.format("%.1fK", value / 1_000);
     } else {
-      return String.format("%.0f", price);
+      return String.format("%.0f", value);
     }
   }
 }

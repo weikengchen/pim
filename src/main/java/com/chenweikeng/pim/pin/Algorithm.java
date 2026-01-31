@@ -356,18 +356,20 @@ public class Algorithm {
         }
       }
 
-      // Swap layers for next iteration
-      Map<DPState, Double> temp = prevLayer;
-      prevLayer = currLayer;
-      currLayer = temp;
+      // Swap layers for next iteration, but not when we've reached the max sum
+      if (sum < maxSum) {
+        Map<DPState, Double> temp = prevLayer;
+        prevLayer = currLayer;
+        currLayer = temp;
+      }
     }
 
     DPState finalState = new DPState(maxSignature, maxDeluxe, maxRare, maxUncommon, maxCommon);
-    if (!prevLayer.containsKey(finalState)) {
+    if (!currLayer.containsKey(finalState)) {
       return DPResult.error(AlgorithmError.DYNAMIC_PROGRAMMING_FAILURE);
     }
 
-    double finalValue = prevLayer.get(finalState);
+    double finalValue = currLayer.get(finalState);
 
     // Calculate "what if" deltas for each rarity type by looking at previous states
     // The delta represents the savings (finalValue - whatIfValue) - how many draws you'd save

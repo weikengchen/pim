@@ -19,7 +19,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(Minecraft.class)
 public class ItemUseMixin {
   private static final long COOLDOWN_MS = 5000;
+  private static final long POST_DISABLE_COOLDOWN_MS = 3000;
   private static long lastTriggerTime = 0;
+  private static long pimDisabledTime = 0;
 
   @Inject(at = @At("HEAD"), method = "startUseItem", cancellable = true)
   public void onStartUseItem(CallbackInfo ci) {
@@ -32,8 +34,7 @@ public class ItemUseMixin {
     ItemStack mainHandItem = player.getMainHandItem();
     ItemStack offHandItem = player.getOffhandItem();
 
-    if (checkIFoneAndHandle(mainHandItem, "Right Click", ci)
-        || checkIFoneAndHandle(offHandItem, "Right Click", ci)) {
+    if (checkIFoneAndHandle(mainHandItem) || checkIFoneAndHandle(offHandItem)) {
       ci.cancel();
       return;
     }
@@ -50,23 +51,22 @@ public class ItemUseMixin {
     ItemStack mainHandItem = player.getMainHandItem();
     ItemStack offHandItem = player.getOffhandItem();
 
-    if (checkIFoneAndHandle(mainHandItem, "Left Click", ci)
-        || checkIFoneAndHandle(offHandItem, "Left Click", ci)) {
+    if (checkIFoneAndHandle(mainHandItem) || checkIFoneAndHandle(offHandItem)) {
       ci.setReturnValue(false);
     }
   }
 
-  private boolean checkIFoneAndHandle(ItemStack itemStack, String clickType, CallbackInfo ci) {
-    if (!PimState.isEnabled()) {
-      return false;
-    }
-
+  private boolean checkIFoneAndHandle(ItemStack itemStack) {
     String displayName = itemStack.getDisplayName().getString();
     String registryName = BuiltInRegistries.ITEM.getKey(itemStack.getItem()).toString();
 
-    if ("[IFone (Right Click)]".equals(displayName)
-        && ("minecraft:iron_axe".equals(registryName)
-            || "minecraft:netherite_sword".equals(registryName))) {
+    if (!"[IFone (Right Click)]".equals(displayName)
+        || (!"minecraft:iron_axe".equals(registryName)
+            && !"minecraft:netherite_sword".equals(registryName))) {
+      return false;
+    }
+
+    if (PimState.isEnabled()) {
       long currentTime = System.currentTimeMillis();
       long timeSinceLastTrigger = currentTime - lastTriggerTime;
 
@@ -76,6 +76,12 @@ public class ItemUseMixin {
       }
       return true;
     }
+
+    long currentTime = System.currentTimeMillis();
+    if (currentTime - pimDisabledTime < POST_DISABLE_COOLDOWN_MS) {
+      return true;
+    }
+
     return false;
   }
 
@@ -92,6 +98,7 @@ public class ItemUseMixin {
         BossBarTracker.getInstance().disable();
         PimState.setEnabled(false);
         PimState.resetWarpPoint();
+        pimDisabledTime = System.currentTimeMillis();
       }
       return;
     }

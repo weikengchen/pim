@@ -51,13 +51,64 @@ When opening pin packs in the pinbook:
 - **Green background**: Mint pins you can add to your pinbook
 - **Golden background**: Mint pins you already have - can still be used for trading
 
-## 🚀 Pin trading warp 
+## 🚀 Pin trading warp
 
 1. Run the command `/pim:trade` to enable pin‑trading mode. You will see a confirmation message.
 2. Hold an IFone and right‑click.
 3. The mod will warp you to the first pin‑trader location and guide you to meet the pin trader.
 4. Right‑click the IFone again to advance to the next distinct warp point. The boss bar updates accordingly.
 5. When all traders have been visited, you will be warped back to Westward Ho Trading Company and pin‑trading mode will turn off automatically.
+
+## 💻 Commands
+
+### `/pim:compute` 🔢
+Calculates how many pin packs and total cost you need to finish your REQUIRED pin series collection.
+
+**Usage:** `/pim:compute`
+
+**Output:** Shows pin packs and cost estimates for each series.
+
+### `/pim:export` 📦
+Exports all the pins in your inventory (including containers) into a shareable "magic string".
+
+**Usage:** `/pim:export`
+
+**Output:** A unique string (e.g., `Pim!ABC123...`) encoding your entire pin collection.
+
+### `/pim:match <magic_string>` 🔍
+Compares another player's magic string against your collection to see which pins you're missing from them.
+
+**Usage:** `/pim:match <magic_string>`
+
+**Output:** Missing pins by series with suggested values (run `/pim:compute` first). These values show "how much it's worth" to add each pin.
+
+### `/pim:view <magic_string>` 👁️
+Displays all pins in a magic string without comparing to your collection.
+
+**Usage:** `/pim:view <magic_string>`
+
+**Output:** Tree view of all pins in the magic string.
+
+### `/pim:reset` 🔄
+Clears all cached pin data. Use if you're having issues or need to reload pin info.
+
+**Usage:** `/pim:reset`
+
+**Output:** Confirmation that cache has been cleared.
+
+### `/pim:trade` 🌀
+Enables automatic warping between pin traders.
+
+**Usage:** `/pim:trade`
+
+**Output:** Confirmation when mode is toggled on/off.
+
+### `/pim:price` 💰
+Shows suggested values for all REQUIRED pin series by rarity (signature, deluxe, rare, uncommon, common).
+
+**Usage:** `/pim:price`
+
+**Output:** Values for each rarity type that exists in each series. These values represent "how much each pin is worth" based on marginal utility.
 
 ## 📄 License
 

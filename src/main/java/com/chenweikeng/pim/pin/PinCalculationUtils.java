@@ -1,8 +1,5 @@
-package com.chenweikeng.pim.command;
+package com.chenweikeng.pim.pin;
 
-import com.chenweikeng.pim.pin.Algorithm;
-import com.chenweikeng.pim.pin.Algorithm.DPResult;
-import com.chenweikeng.pim.pin.Rarity;
 import com.chenweikeng.pim.screen.PinBookHandler;
 import com.chenweikeng.pim.screen.PinDetailHandler;
 import com.chenweikeng.pim.screen.PinRarityHandler;
@@ -12,14 +9,14 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Utility class for sharing pin calculation methods between commands. Provides reusable methods for
- * getting pin series counts and calculating fair prices.
+ * getting pin series counts and calculating suggested values.
  */
 public class PinCalculationUtils {
 
   // Shared cache for start points and results
   private static final ConcurrentHashMap<String, Algorithm.DPStartPoint> cachedStartPoints =
       new ConcurrentHashMap<>();
-  private static final ConcurrentHashMap<String, DPResult> cachedResults =
+  private static final ConcurrentHashMap<String, Algorithm.DPResult> cachedResults =
       new ConcurrentHashMap<>();
 
   /**
@@ -99,7 +96,8 @@ public class PinCalculationUtils {
       Algorithm.DPStartPoint startPoint =
           new Algorithm.DPStartPoint(mintSignature, mintDeluxe, mintRare, mintUncommon, mintCommon);
 
-      return new Algorithm.PinSeriesCounts(goal, startPoint);
+      Algorithm.PinSeriesCounts counts = new Algorithm.PinSeriesCounts(goal, startPoint);
+      return counts;
 
     } catch (Exception e) {
       return null;
@@ -110,12 +108,12 @@ public class PinCalculationUtils {
    * Gets cached algorithm result or runs the algorithm if needed. Returns null if calculation
    * fails.
    */
-  public static DPResult getCachedOrCalculateResult(
+  public static Algorithm.DPResult getCachedOrCalculateResult(
       String seriesName, Algorithm.PinSeriesCounts counts) {
     // Check cache for start point
     Algorithm.DPStartPoint cachedStartPoint = cachedStartPoints.get(seriesName);
 
-    DPResult result;
+    Algorithm.DPResult result;
     if (cachedStartPoint != null && cachedStartPoint.equals(counts.startPoint)) {
       result = cachedResults.get(seriesName);
     } else {
@@ -130,17 +128,21 @@ public class PinCalculationUtils {
   }
 
   /**
-   * Calculates fair prices for each rarity type in a series using delta values from the algorithm.
-   * Fair price = (delta * pinbox_price) / 2 Returns empty map if delta values are not available.
+   * Calculates suggested values for each rarity type in a series using delta values from the
+   * algorithm. Suggested value = (delta * pinbox_price) / 2 Returns empty map if delta values are
+   * not available.
    */
-  public static Map<Rarity, Double> calculateFairPricesForSeries(String seriesName) {
-    Map<Rarity, Double> fairPrices = new HashMap<>();
+  public static Map<Rarity, Double> calculateSuggestedPricesForSeries(String seriesName) {
+    Map<Rarity, Double> suggestedValues = new HashMap<>();
 
     // Get series entry to find pinbox price
     PinRarityHandler.PinSeriesEntry seriesEntry =
         PinRarityHandler.getInstance().getSeriesEntry(seriesName);
-    if (seriesEntry == null || seriesEntry.color == null) {
-      return fairPrices; // Empty map if no price data
+    if (seriesEntry == null) {
+      return suggestedValues; // Empty map if no price data
+    }
+    if (seriesEntry.color == null) {
+      return suggestedValues; // Empty map if no price data
     }
 
     double pinboxPrice = seriesEntry.color.price;
@@ -148,32 +150,37 @@ public class PinCalculationUtils {
     // Get pin series counts
     Algorithm.PinSeriesCounts counts = getPinSeriesCounts(seriesName);
     if (counts == null) {
-      return fairPrices; // Empty map if no series data
+      return suggestedValues; // Empty map if no series data
     }
 
     // Get cached or calculated result
-    DPResult result = getCachedOrCalculateResult(seriesName, counts);
-    if (result == null || result.isError()) {
-      return fairPrices; // Empty map if calculation fails
+    Algorithm.DPResult result = getCachedOrCalculateResult(seriesName, counts);
+    if (result == null) {
+      return suggestedValues; // Empty map if calculation fails
+    }
+    if (result.isError()) {
+      return suggestedValues; // Empty map if calculation fails
     }
 
-    // Calculate fair prices for each rarity type where delta is available
+    // Calculate suggested values for each rarity type where delta is available
     if (result.whatIfOneMoreSignature.isPresent()) {
-      fairPrices.put(Rarity.SIGNATURE, (result.whatIfOneMoreSignature.get() * pinboxPrice) / 2.0);
+      suggestedValues.put(
+          Rarity.SIGNATURE, (result.whatIfOneMoreSignature.get() * pinboxPrice) / 2.0);
     }
     if (result.whatIfOneMoreDeluxe.isPresent()) {
-      fairPrices.put(Rarity.DELUXE, (result.whatIfOneMoreDeluxe.get() * pinboxPrice) / 2.0);
+      suggestedValues.put(Rarity.DELUXE, (result.whatIfOneMoreDeluxe.get() * pinboxPrice) / 2.0);
     }
     if (result.whatIfOneMoreRare.isPresent()) {
-      fairPrices.put(Rarity.RARE, (result.whatIfOneMoreRare.get() * pinboxPrice) / 2.0);
+      suggestedValues.put(Rarity.RARE, (result.whatIfOneMoreRare.get() * pinboxPrice) / 2.0);
     }
     if (result.whatIfOneMoreUncommon.isPresent()) {
-      fairPrices.put(Rarity.UNCOMMON, (result.whatIfOneMoreUncommon.get() * pinboxPrice) / 2.0);
+      suggestedValues.put(
+          Rarity.UNCOMMON, (result.whatIfOneMoreUncommon.get() * pinboxPrice) / 2.0);
     }
     if (result.whatIfOneMoreCommon.isPresent()) {
-      fairPrices.put(Rarity.COMMON, (result.whatIfOneMoreCommon.get() * pinboxPrice) / 2.0);
+      suggestedValues.put(Rarity.COMMON, (result.whatIfOneMoreCommon.get() * pinboxPrice) / 2.0);
     }
 
-    return fairPrices;
+    return suggestedValues;
   }
 }
