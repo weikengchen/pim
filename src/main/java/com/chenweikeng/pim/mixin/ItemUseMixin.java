@@ -25,6 +25,10 @@ public class ItemUseMixin {
 
   @Inject(at = @At("HEAD"), method = "startUseItem", cancellable = true)
   public void onStartUseItem(CallbackInfo ci) {
+    if (!PimClient.isImagineFunServer()) {
+      return;
+    }
+
     var player = Minecraft.getInstance().player;
 
     if (player == null) {
@@ -42,6 +46,10 @@ public class ItemUseMixin {
 
   @Inject(at = @At("HEAD"), method = "startAttack", cancellable = true)
   public void onStartAttack(CallbackInfoReturnable<Boolean> ci) {
+    if (!PimClient.isImagineFunServer()) {
+      return;
+    }
+
     var player = Minecraft.getInstance().player;
 
     if (player == null) {

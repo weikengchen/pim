@@ -1,5 +1,6 @@
 package com.chenweikeng.pim.mixin;
 
+import com.chenweikeng.pim.PimClient;
 import com.chenweikeng.pim.tracker.BossBarTracker;
 import java.util.Map;
 import java.util.UUID;
@@ -52,6 +53,10 @@ public class BossHealthOverlayMixin {
 
   @Inject(method = "render", at = @At("HEAD"))
   private void render(GuiGraphics guiGraphics, CallbackInfo ci) {
+    if (!PimClient.isImagineFunServer()) {
+      return;
+    }
+
     if (BossBarTracker.getInstance().isEnabled()) {
       Component displayTitle = BossBarTracker.getInstance().getDisplayTitle();
       if (!displayTitle.getString().isEmpty()) {

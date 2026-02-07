@@ -1,5 +1,6 @@
 package com.chenweikeng.pim.mixin;
 
+import com.chenweikeng.pim.PimClient;
 import com.chenweikeng.pim.screen.PinBookHandler;
 import com.chenweikeng.pim.screen.PinDetailHandler;
 import com.chenweikeng.pim.screen.PinRarityHandler;
@@ -20,6 +21,10 @@ public class ClientPacketListenerMixin {
   @Inject(at = @At("HEAD"), method = "handleContainerContent")
   public void onInventory(
       ClientboundContainerSetContentPacket inventoryS2CPacket, CallbackInfo ci) {
+    if (!PimClient.isImagineFunServer()) {
+      return;
+    }
+
     Screen screen = Minecraft.getInstance().screen;
     if (screen != null) {
       ScreenManager.ScreenType screenType = ScreenManager.detectScreenType(screen);
@@ -35,6 +40,10 @@ public class ClientPacketListenerMixin {
 
   @Inject(at = @At("HEAD"), method = "handleContainerSetSlot")
   public void onScreenHandlerSlotUpdate(ClientboundContainerSetSlotPacket packet, CallbackInfo ci) {
+    if (!PimClient.isImagineFunServer()) {
+      return;
+    }
+
     Screen screen = Minecraft.getInstance().screen;
     if (screen != null) {
       ScreenManager.ScreenType screenType = ScreenManager.detectScreenType(screen);

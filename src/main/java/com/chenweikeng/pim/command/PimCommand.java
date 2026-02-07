@@ -12,8 +12,6 @@ public class PimCommand {
           PimResetCommand.register(dispatcher);
           PimComputeCommand.register(dispatcher);
           PimExportCommand.register(dispatcher);
-          PimMatchCommand.register(dispatcher);
-          PimViewCommand.register(dispatcher);
           PimPriceCommand.register(dispatcher);
         });
   }

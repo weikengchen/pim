@@ -1,5 +1,6 @@
 package com.chenweikeng.pim.command;
 
+import com.chenweikeng.pim.PimClient;
 import com.chenweikeng.pim.pin.Algorithm;
 import com.chenweikeng.pim.pin.Algorithm.DPResult;
 import com.chenweikeng.pim.pin.Algorithm.PinSeriesCounts;
@@ -43,6 +44,7 @@ public class PimComputeCommand {
       com.mojang.brigadier.CommandDispatcher<FabricClientCommandSource> dispatcher) {
     dispatcher.register(
         ClientCommandManager.literal("pim:compute")
+            .requires(src -> PimClient.isImagineFunServer())
             .executes(
                 context -> {
                   // Start calculation on separate thread

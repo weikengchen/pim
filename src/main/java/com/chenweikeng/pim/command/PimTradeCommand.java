@@ -1,5 +1,6 @@
 package com.chenweikeng.pim.command;
 
+import com.chenweikeng.pim.PimClient;
 import com.chenweikeng.pim.PimState;
 import com.chenweikeng.pim.tracker.BossBarTracker;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
@@ -12,6 +13,7 @@ public class PimTradeCommand {
       com.mojang.brigadier.CommandDispatcher<FabricClientCommandSource> dispatcher) {
     dispatcher.register(
         ClientCommandManager.literal("pim:trade")
+            .requires(src -> PimClient.isImagineFunServer())
             .executes(
                 context -> {
                   boolean newState = !PimState.isEnabled();

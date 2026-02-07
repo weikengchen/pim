@@ -1,5 +1,6 @@
 package com.chenweikeng.pim.mixin;
 
+import com.chenweikeng.pim.PimClient;
 import com.chenweikeng.pim.screen.InventoryHandler;
 import com.chenweikeng.pim.screen.PinBookHandler;
 import com.chenweikeng.pim.screen.PinDetailHandler;
@@ -28,6 +29,10 @@ public class AbstractContainerScreenMixin {
 
   @Inject(at = @At("HEAD"), method = "renderSlot", cancellable = true)
   public void onRenderSlot(GuiGraphics guiGraphics, Slot slot, int i, int j, CallbackInfo ci) {
+    if (!PimClient.isImagineFunServer()) {
+      return;
+    }
+
     AbstractContainerScreen<?> screen = (AbstractContainerScreen<?>) (Object) this;
     ScreenAccessor screenAccessor = (ScreenAccessor) screen;
     int k = slot.x;
@@ -174,6 +179,10 @@ public class AbstractContainerScreenMixin {
 
   @Inject(at = @At("HEAD"), method = "slotClicked")
   public void onSlotClicked(Slot slot, int i, int j, ClickType clickType, CallbackInfo ci) {
+    if (!PimClient.isImagineFunServer()) {
+      return;
+    }
+
     if (slot == null) {
       return;
     }

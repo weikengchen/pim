@@ -1,5 +1,6 @@
 package com.chenweikeng.pim.command;
 
+import com.chenweikeng.pim.PimClient;
 import com.chenweikeng.pim.pin.PinCalculationUtils;
 import com.chenweikeng.pim.pin.Rarity;
 import com.chenweikeng.pim.screen.PinRarityHandler;
@@ -16,6 +17,7 @@ public class PimPriceCommand {
       com.mojang.brigadier.CommandDispatcher<FabricClientCommandSource> dispatcher) {
     dispatcher.register(
         ClientCommandManager.literal("pim:price")
+            .requires(src -> PimClient.isImagineFunServer())
             .executes(
                 context -> {
                   displayPrices(context.getSource());

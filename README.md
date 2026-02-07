@@ -69,25 +69,25 @@ Calculates how many pin packs and total cost you need to finish your REQUIRED pi
 **Output:** Shows pin packs and cost estimates for each series.
 
 ### `/pim:export` 📦
-Exports all the pins in your inventory (including containers) into a shareable "magic string".
+Exports your pin collection as a human-readable text format designed for sharing with other players on Discord.
 
 **Usage:** `/pim:export`
 
-**Output:** A unique string (e.g., `Pim!ABC123...`) encoding your entire pin collection.
+**Output:** A shareable text with your player name, :lookingfor: section (missing pins by series, skipped if none), and :forsale: section (available mint pins by series, skipped if none). Automatically copied to clipboard.
 
-### `/pim:match <magic_string>` 🔍
-Compares another player's magic string against your collection to see which pins you're missing from them.
+**Automatic Clipboard Parsing:** When you copy another player's export to your clipboard, the mod automatically parses it and displays matches in player chat:
+- **You can offer to them:** Pins from your inventory that match the other player's :lookingfor: (series names in blue)
+- **You need from them:** Pins from the other player's :forsale: that you don't have in your pinbook (series names in blue)
 
-**Usage:** `/pim:match <magic_string>`
+The mod also copies an exchange message to your clipboard formatted as:
+```
+I want to offer:
+- [Series Name]: [pin names, ...]
+I want to take:
+- [Series Name]: [pin names, ...]
+```
 
-**Output:** Missing pins by series with suggested values (run `/pim:compute` first). These values show "how much it's worth" to add each pin.
-
-### `/pim:view <magic_string>` 👁️
-Displays all pins in a magic string without comparing to your collection.
-
-**Usage:** `/pim:view <magic_string>`
-
-**Output:** Tree view of all pins in the magic string.
+This message can be sent directly to the other player to confirm the exchange.
 
 ### `/pim:reset` 🔄
 Clears all cached pin data. Use if you're having issues or need to reload pin info.

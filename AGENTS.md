@@ -38,19 +38,27 @@ This document outlines the goals and features for the Pinhoarder Minecraft mod. 
 - Plays bell sound when switching to next trader
 - Auto-disables when all traders visited
 
-### Magic String System
+### Pin Export System
 
-Allows players to share and compare pin collections via encoded strings.
+Allows players to share their pin collection in a human-readable format.
 
-**Commands:**
-- `/pim:export` - Exports your current mint pin collection as a magic string
-- `/pim:match <magic_string>` - Compares a shared magic string against your collection to show missing pins
-- `/pim:view <magic_string>` - Displays all pins in a magic string without comparison
+**Command:**
+- `/pim:export` - Exports your pin collection as a shareable text format
 
 **Features:**
-- Encodes only REQUIRED series mint pins
-- Shows inline suggested values for missing pins (if `/pim:compute` has been run)
-- Two-level tree display organized by series and pin name
+- Displays player name
+- Shows :lookingfor: section with missing pins by series (REQUIRED series only)
+- Shows :forsale: section with available mint pins in inventory by series
+- Automatically copies to clipboard
+- Human-readable format for easy sharing
+
+**Automatic Clipboard Parsing:**
+- When you copy another player's export to your clipboard, the mod automatically parses it
+- Skips if the clipboard content hasn't changed
+- Skips if the export is from your own player name
+- Displays matches in player chat:
+  - **You can offer**: Pins from your inventory that match the other player's :lookingfor:
+  - **You need**: Pins from the other player's :forsale: that you don't have in your pinbook
 
 ### Price Calculation System
 
@@ -88,14 +96,12 @@ src/main/java/com/chenweikeng/pim/
 │   ├── PimTradeCommand.java    # Pin trading warp
 │   ├── PimResetCommand.java    # Reset data
 │   ├── PimComputeCommand.java  # Price calculation
-│   ├── PimExportCommand.java   # Export magic string
-│   ├── PimMatchCommand.java    # Match magic strings
-│   ├── PimViewCommand.java     # View magic strings
+│   ├── PimExportCommand.java   # Export pin collection
 │   └── PimPriceCommand.java    # Display prices
 ├── pin/              # Pin-related utilities
 │   ├── PinCalculationUtils.java # Value calculation logic
-│   ├── MagicStringUtils.java    # Magic string parsing/display
-│   ├── MagicString.java         # Magic string generation
+│   ├── MagicStringUtils.java    # String parsing/display
+│   ├── MagicString.java         # Pin data retrieval
 │   ├── Algorithm.java           # Dynamic programming algorithm
 │   └── Rarity.java              # Rarity enum
 ├── screen/           # Screen data handlers
@@ -107,8 +113,9 @@ src/main/java/com/chenweikeng/pim/
 │   ├── GuiMixin.java                    # HUD rendering
 │   ├── ClientTickMixin.java             # Tick handlers
 │   └── ClientPacketListenerMixin.java   # Packet handlers
-├── tracker/          # Boss bar tracking
-│   └── BossBarTracker.java
+├── tracker/          # Boss bar tracking and clipboard parsing
+│   ├── BossBarTracker.java
+│   └── ClipboardParser.java
 └── PimClient.java    # Mod entry point
 ```
 
@@ -143,7 +150,6 @@ src/main/java/com/chenweikeng/pim/
 - **Pinbook**: Command `/pinbook` to view pin collection interface
 - **Pin Trader**: NPC or location where pins can be traded
 - **Warp Point**: Designated teleport location on the server
-- **Magic String**: Encoded string representing a player's mint pin collection
 - **Suggested Value**: Calculated trading value based on marginal utility
 
 ## Notes for Development

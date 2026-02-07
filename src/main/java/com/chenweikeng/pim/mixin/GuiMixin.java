@@ -1,5 +1,6 @@
 package com.chenweikeng.pim.mixin;
 
+import com.chenweikeng.pim.PimClient;
 import com.chenweikeng.pim.screen.PinDetailHandler;
 import com.chenweikeng.pim.screen.PinRarityHandler;
 import net.minecraft.client.DeltaTracker;
@@ -28,6 +29,10 @@ public class GuiMixin {
       ItemStack itemStack,
       int k,
       CallbackInfo ci) {
+    if (!PimClient.isImagineFunServer()) {
+      return;
+    }
+
     if (itemStack.isEmpty()) {
       return;
     }
