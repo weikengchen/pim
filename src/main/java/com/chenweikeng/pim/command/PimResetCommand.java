@@ -20,6 +20,7 @@ public class PimResetCommand {
                   PinRarityHandler.getInstance().reset();
                   PinBookHandler.getInstance().reset();
                   PinDetailHandler.getInstance().reset();
+                  PimFmvCommand.resetCache();
                   context
                       .getSource()
                       .sendFeedback(

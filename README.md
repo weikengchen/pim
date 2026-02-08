@@ -62,7 +62,7 @@ When opening pin packs in the pinbook:
 ## 💻 Commands
 
 ### `/pim:compute` 🔢
-Calculates how many pin packs and total cost you need to finish your REQUIRED pin series collection.
+Calculates how many pin packs and total cost you need to finish your required pin series collection.
 
 **Usage:** `/pim:compute`
 
@@ -103,12 +103,19 @@ Enables automatic warping between pin traders.
 
 **Output:** Confirmation when mode is toggled on/off.
 
-### `/pim:price` 💰
-Shows suggested values for all REQUIRED pin series by rarity (signature, deluxe, rare, uncommon, common).
+### `/pim:value` 💰
+Shows player specific values for all required pin series by rarity (signature, deluxe, rare, uncommon, common).
 
-**Usage:** `/pim:price`
+**Usage:** `/pim:value`
 
 **Output:** Values for each rarity type that exists in each series. These values represent "how much each pin is worth" based on marginal utility.
+
+### `/pim:fmv` 📊
+Shows fair market values for pins in all required pin series.
+
+**Usage:** `/pim:fmv`
+
+**Output:** Displays FMV values for each rarity type (signature, deluxe, rare, uncommon, common) that exists in each series, showing floor and ceiling price ranges. Provides a clickable button to copy all values to clipboard in a compact format. Results are cached to avoid recalculation.
 
 ## 📄 License
 

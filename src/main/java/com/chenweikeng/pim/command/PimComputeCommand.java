@@ -24,12 +24,15 @@ public class PimComputeCommand {
       Executors.newSingleThreadExecutor(
           new ThreadFactory() {
             private final AtomicInteger counter = new AtomicInteger(0);
+            private final ClassLoader contextClassLoader =
+                Thread.currentThread().getContextClassLoader();
 
             @Override
             public Thread newThread(Runnable r) {
               Thread thread = new Thread(r, "Pim-Calculation-" + counter.incrementAndGet());
               thread.setDaemon(true);
               thread.setPriority(Thread.MIN_PRIORITY);
+              thread.setContextClassLoader(contextClassLoader);
               return thread;
             }
           });
@@ -237,6 +240,11 @@ public class PimComputeCommand {
 
     // Check if detailMap size matches totalMints (no blinking condition from line 92-94)
     if (detailMap.size() != bookEntry.totalMints) {
+      return false;
+    }
+
+    // Check if the pin series is complete
+    if (bookEntry.totalMints == bookEntry.mintsCollected) {
       return false;
     }
 

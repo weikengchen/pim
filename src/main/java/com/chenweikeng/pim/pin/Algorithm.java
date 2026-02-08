@@ -16,6 +16,11 @@ public class Algorithm {
     public final Optional<Double> whatIfOneMoreRare;
     public final Optional<Double> whatIfOneMoreUncommon;
     public final Optional<Double> whatIfOneMoreCommon;
+    public final Optional<Double> whatIfLastSignature;
+    public final Optional<Double> whatIfLastDeluxe;
+    public final Optional<Double> whatIfLastRare;
+    public final Optional<Double> whatIfLastUncommon;
+    public final Optional<Double> whatIfLastCommon;
 
     private DPResult(
         Optional<AlgorithmError> error,
@@ -24,7 +29,12 @@ public class Algorithm {
         Optional<Double> whatIfOneMoreDeluxe,
         Optional<Double> whatIfOneMoreRare,
         Optional<Double> whatIfOneMoreUncommon,
-        Optional<Double> whatIfOneMoreCommon) {
+        Optional<Double> whatIfOneMoreCommon,
+        Optional<Double> whatIfLastSignature,
+        Optional<Double> whatIfLastDeluxe,
+        Optional<Double> whatIfLastRare,
+        Optional<Double> whatIfLastUncommon,
+        Optional<Double> whatIfLastCommon) {
       this.error = error;
       this.value = value;
       this.whatIfOneMoreSignature = whatIfOneMoreSignature;
@@ -32,11 +42,21 @@ public class Algorithm {
       this.whatIfOneMoreRare = whatIfOneMoreRare;
       this.whatIfOneMoreUncommon = whatIfOneMoreUncommon;
       this.whatIfOneMoreCommon = whatIfOneMoreCommon;
+      this.whatIfLastSignature = whatIfLastSignature;
+      this.whatIfLastDeluxe = whatIfLastDeluxe;
+      this.whatIfLastRare = whatIfLastRare;
+      this.whatIfLastUncommon = whatIfLastUncommon;
+      this.whatIfLastCommon = whatIfLastCommon;
     }
 
     public static DPResult error(AlgorithmError error) {
       return new DPResult(
           Optional.of(error),
+          Optional.empty(),
+          Optional.empty(),
+          Optional.empty(),
+          Optional.empty(),
+          Optional.empty(),
           Optional.empty(),
           Optional.empty(),
           Optional.empty(),
@@ -51,7 +71,12 @@ public class Algorithm {
         Double whatIfOneMoreDeluxe,
         Double whatIfOneMoreRare,
         Double whatIfOneMoreUncommon,
-        Double whatIfOneMoreCommon) {
+        Double whatIfOneMoreCommon,
+        Double whatIfLastSignature,
+        Double whatIfLastDeluxe,
+        Double whatIfLastRare,
+        Double whatIfLastUncommon,
+        Double whatIfLastCommon) {
       return new DPResult(
           Optional.empty(),
           Optional.of(value),
@@ -59,11 +84,16 @@ public class Algorithm {
           Optional.ofNullable(whatIfOneMoreDeluxe),
           Optional.ofNullable(whatIfOneMoreRare),
           Optional.ofNullable(whatIfOneMoreUncommon),
-          Optional.ofNullable(whatIfOneMoreCommon));
+          Optional.ofNullable(whatIfOneMoreCommon),
+          Optional.ofNullable(whatIfLastSignature),
+          Optional.ofNullable(whatIfLastDeluxe),
+          Optional.ofNullable(whatIfLastRare),
+          Optional.ofNullable(whatIfLastUncommon),
+          Optional.ofNullable(whatIfLastCommon));
     }
 
     public static DPResult success(double value) {
-      return success(value, null, null, null, null, null);
+      return success(value, null, null, null, null, null, null, null, null, null, null);
     }
 
     public boolean isError() {
@@ -264,6 +294,13 @@ public class Algorithm {
     Map<DPState, Double> prevLayer = new HashMap<>();
     Map<DPState, Double> currLayer = new HashMap<>();
 
+    // Capture sum=1 values (expected value of having exactly one pin of each rarity type)
+    Double whatIfLastSignature = null;
+    Double whatIfLastDeluxe = null;
+    Double whatIfLastRare = null;
+    Double whatIfLastUncommon = null;
+    Double whatIfLastCommon = null;
+
     for (int sum = 0; sum <= maxSum; sum++) {
       // Clear current layer and swap layers for next iteration
       currLayer.clear();
@@ -356,6 +393,30 @@ public class Algorithm {
         }
       }
 
+      // Capture sum=1 values (expected value of having exactly one pin of each rarity type)
+      if (sum == 1) {
+        DPState oneSignatureState = new DPState(1, 0, 0, 0, 0);
+        if (currLayer.containsKey(oneSignatureState)) {
+          whatIfLastSignature = currLayer.get(oneSignatureState);
+        }
+        DPState oneDeluxeState = new DPState(0, 1, 0, 0, 0);
+        if (currLayer.containsKey(oneDeluxeState)) {
+          whatIfLastDeluxe = currLayer.get(oneDeluxeState);
+        }
+        DPState oneRareState = new DPState(0, 0, 1, 0, 0);
+        if (currLayer.containsKey(oneRareState)) {
+          whatIfLastRare = currLayer.get(oneRareState);
+        }
+        DPState oneUncommonState = new DPState(0, 0, 0, 1, 0);
+        if (currLayer.containsKey(oneUncommonState)) {
+          whatIfLastUncommon = currLayer.get(oneUncommonState);
+        }
+        DPState oneCommonState = new DPState(0, 0, 0, 0, 1);
+        if (currLayer.containsKey(oneCommonState)) {
+          whatIfLastCommon = currLayer.get(oneCommonState);
+        }
+      }
+
       // Swap layers for next iteration, but not when we've reached the max sum
       if (sum < maxSum) {
         Map<DPState, Double> temp = prevLayer;
@@ -424,7 +485,17 @@ public class Algorithm {
     }
 
     return DPResult.success(
-        finalValue, deltaSignature, deltaDeluxe, deltaRare, deltaUncommon, deltaCommon);
+        finalValue,
+        deltaSignature,
+        deltaDeluxe,
+        deltaRare,
+        deltaUncommon,
+        deltaCommon,
+        whatIfLastSignature,
+        whatIfLastDeluxe,
+        whatIfLastRare,
+        whatIfLastUncommon,
+        whatIfLastCommon);
   }
 
   private static double calculateProbabilityGetSignature(DPGoal goal, int currentCount) {

@@ -60,15 +60,15 @@ Allows players to share their pin collection in a human-readable format.
   - **You can offer**: Pins from your inventory that match the other player's :lookingfor:
   - **You need**: Pins from the other player's :forsale: that you don't have in your pinbook
 
-### Price Calculation System
+### Value Calculation System
 
 **Commands:**
 - `/pim:compute` - Calculates marginal values for all pin series using dynamic programming
-- `/pim:price` - Displays suggested values for all REQUIRED pin series by rarity type
+- `/pim:value` - Displays player specific values for all REQUIRED pin series by rarity type
 
 **Algorithm:**
 - Uses dynamic programming to calculate marginal value of adding one pin of each rarity type
-- Suggested value = (delta * pinbox_price) / 2
+- Player specific value = (delta * pinbox_price) / 2
 - Caches results to avoid recalculation
 - Supports: Signature, Deluxe, Rare, Uncommon, Common rarity types
 
@@ -150,7 +150,7 @@ src/main/java/com/chenweikeng/pim/
 - **Pinbook**: Command `/pinbook` to view pin collection interface
 - **Pin Trader**: NPC or location where pins can be traded
 - **Warp Point**: Designated teleport location on the server
-- **Suggested Value**: Calculated trading value based on marginal utility
+- **Player Specific Value**: Calculated trading value based on marginal utility
 
 ## Notes for Development
 

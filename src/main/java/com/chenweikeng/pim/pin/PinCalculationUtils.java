@@ -9,14 +9,18 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Utility class for sharing pin calculation methods between commands. Provides reusable methods for
- * getting pin series counts and calculating suggested values.
+ * getting pin series counts and calculating player specific values.
  */
 public class PinCalculationUtils {
 
-  // Shared cache for start points and results
-  private static final ConcurrentHashMap<String, Algorithm.DPStartPoint> cachedStartPoints =
+  // Shared cache for player specific start points and results
+  private static final ConcurrentHashMap<String, Algorithm.DPStartPoint>
+      playerSpecificCachedStartPoints = new ConcurrentHashMap<>();
+  private static final ConcurrentHashMap<String, Algorithm.DPResult> playerSpecificCachedResults =
       new ConcurrentHashMap<>();
-  private static final ConcurrentHashMap<String, Algorithm.DPResult> cachedResults =
+
+  // Shared cache for FMV results (start point is always zero, no need to cache)
+  private static final ConcurrentHashMap<String, Algorithm.DPResult> fmvCachedResults =
       new ConcurrentHashMap<>();
 
   /**
@@ -35,6 +39,10 @@ public class PinCalculationUtils {
       // Get book entry for total counts
       PinBookHandler.PinBookEntry bookEntry = PinBookHandler.getInstance().getBookEntry(seriesName);
       if (bookEntry == null) {
+        return null;
+      }
+
+      if (bookEntry.totalMints != detailMap.size()) {
         return null;
       }
 
@@ -105,22 +113,22 @@ public class PinCalculationUtils {
   }
 
   /**
-   * Gets cached algorithm result or runs the algorithm if needed. Returns null if calculation
-   * fails.
+   * Gets cached algorithm result or runs the algorithm if needed for player specific values.
+   * Returns null if calculation fails.
    */
-  public static Algorithm.DPResult getCachedOrCalculateResult(
+  public static Algorithm.DPResult getCachedOrCalculatePlayerSpecificResult(
       String seriesName, Algorithm.PinSeriesCounts counts) {
     // Check cache for start point
-    Algorithm.DPStartPoint cachedStartPoint = cachedStartPoints.get(seriesName);
+    Algorithm.DPStartPoint cachedStartPoint = playerSpecificCachedStartPoints.get(seriesName);
 
     Algorithm.DPResult result;
     if (cachedStartPoint != null && cachedStartPoint.equals(counts.startPoint)) {
-      result = cachedResults.get(seriesName);
+      result = playerSpecificCachedResults.get(seriesName);
     } else {
       result = Algorithm.runDynamicProgramming(seriesName, counts);
       if (result != null && !result.isError()) {
-        cachedStartPoints.put(seriesName, counts.startPoint);
-        cachedResults.put(seriesName, result);
+        playerSpecificCachedStartPoints.put(seriesName, counts.startPoint);
+        playerSpecificCachedResults.put(seriesName, result);
       }
     }
 
@@ -128,21 +136,40 @@ public class PinCalculationUtils {
   }
 
   /**
-   * Calculates suggested values for each rarity type in a series using delta values from the
-   * algorithm. Suggested value = (delta * pinbox_price) / 2 Returns empty map if delta values are
-   * not available.
+   * Gets cached algorithm result or runs the algorithm if needed for FMV values. Returns null if
+   * calculation fails.
    */
-  public static Map<Rarity, Double> calculateSuggestedPricesForSeries(String seriesName) {
-    Map<Rarity, Double> suggestedValues = new HashMap<>();
+  public static Algorithm.DPResult getCachedOrCalculateFMVResult(
+      String seriesName, Algorithm.PinSeriesCounts counts) {
+    // Check cache for result (start point is always zero for FMV)
+    Algorithm.DPResult result = fmvCachedResults.get(seriesName);
+
+    if (result == null) {
+      result = Algorithm.runDynamicProgramming(seriesName, counts);
+      if (result != null && !result.isError()) {
+        fmvCachedResults.put(seriesName, result);
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Calculates player specific values for each rarity type in a series using delta values from the
+   * algorithm. Player specific value = (delta * pinbox_price) / 2 Returns empty map if delta values
+   * are not available.
+   */
+  public static Map<Rarity, Double> calculatePlayerSpecificValuesForSeries(String seriesName) {
+    Map<Rarity, Double> playerSpecificValues = new HashMap<>();
 
     // Get series entry to find pinbox price
     PinRarityHandler.PinSeriesEntry seriesEntry =
         PinRarityHandler.getInstance().getSeriesEntry(seriesName);
     if (seriesEntry == null) {
-      return suggestedValues; // Empty map if no price data
+      return playerSpecificValues; // Empty map if no price data
     }
     if (seriesEntry.color == null) {
-      return suggestedValues; // Empty map if no price data
+      return playerSpecificValues; // Empty map if no price data
     }
 
     double pinboxPrice = seriesEntry.color.price;
@@ -150,37 +177,131 @@ public class PinCalculationUtils {
     // Get pin series counts
     Algorithm.PinSeriesCounts counts = getPinSeriesCounts(seriesName);
     if (counts == null) {
-      return suggestedValues; // Empty map if no series data
+      return playerSpecificValues; // Empty map if no series data
     }
 
     // Get cached or calculated result
-    Algorithm.DPResult result = getCachedOrCalculateResult(seriesName, counts);
+    Algorithm.DPResult result = getCachedOrCalculatePlayerSpecificResult(seriesName, counts);
     if (result == null) {
-      return suggestedValues; // Empty map if calculation fails
+      return playerSpecificValues; // Empty map if calculation fails
     }
     if (result.isError()) {
-      return suggestedValues; // Empty map if calculation fails
+      return playerSpecificValues; // Empty map if calculation fails
     }
 
-    // Calculate suggested values for each rarity type where delta is available
+    // Calculate player specific values for each rarity type where delta is available
     if (result.whatIfOneMoreSignature.isPresent()) {
-      suggestedValues.put(
+      playerSpecificValues.put(
           Rarity.SIGNATURE, (result.whatIfOneMoreSignature.get() * pinboxPrice) / 2.0);
     }
     if (result.whatIfOneMoreDeluxe.isPresent()) {
-      suggestedValues.put(Rarity.DELUXE, (result.whatIfOneMoreDeluxe.get() * pinboxPrice) / 2.0);
+      playerSpecificValues.put(
+          Rarity.DELUXE, (result.whatIfOneMoreDeluxe.get() * pinboxPrice) / 2.0);
     }
     if (result.whatIfOneMoreRare.isPresent()) {
-      suggestedValues.put(Rarity.RARE, (result.whatIfOneMoreRare.get() * pinboxPrice) / 2.0);
+      playerSpecificValues.put(Rarity.RARE, (result.whatIfOneMoreRare.get() * pinboxPrice) / 2.0);
     }
     if (result.whatIfOneMoreUncommon.isPresent()) {
-      suggestedValues.put(
+      playerSpecificValues.put(
           Rarity.UNCOMMON, (result.whatIfOneMoreUncommon.get() * pinboxPrice) / 2.0);
     }
     if (result.whatIfOneMoreCommon.isPresent()) {
-      suggestedValues.put(Rarity.COMMON, (result.whatIfOneMoreCommon.get() * pinboxPrice) / 2.0);
+      playerSpecificValues.put(
+          Rarity.COMMON, (result.whatIfOneMoreCommon.get() * pinboxPrice) / 2.0);
     }
 
-    return suggestedValues;
+    return playerSpecificValues;
+  }
+
+  /** Result class for FMV calculations containing both floor and ceiling values. */
+  public static class FMVResult {
+    public final Map<Rarity, Double> floorValues;
+    public final Map<Rarity, Double> ceilValues;
+
+    public FMVResult(Map<Rarity, Double> floorValues, Map<Rarity, Double> ceilValues) {
+      this.floorValues = floorValues;
+      this.ceilValues = ceilValues;
+    }
+  }
+
+  /**
+   * Calculates FMV values for each rarity type in a series using delta values from the algorithm
+   * with zero start point. FMV value = (delta * pinbox_price) / 2 Returns empty maps if delta
+   * values are not available.
+   *
+   * @param seriesName the name of the pin series
+   * @return FMVResult containing floorValues (what if one more) and ceilValues (what if last)
+   */
+  public static FMVResult calculateFMVValuesForSeries(String seriesName) {
+    Map<Rarity, Double> floorValues = new HashMap<>();
+    Map<Rarity, Double> ceilValues = new HashMap<>();
+
+    // Get series entry to find pinbox price
+    PinRarityHandler.PinSeriesEntry seriesEntry =
+        PinRarityHandler.getInstance().getSeriesEntry(seriesName);
+    if (seriesEntry == null) {
+      return new FMVResult(floorValues, ceilValues); // Empty maps if no price data
+    }
+    if (seriesEntry.color == null) {
+      return new FMVResult(floorValues, ceilValues); // Empty maps if no price data
+    }
+
+    double pinboxPrice = seriesEntry.color.price;
+
+    // Get pin series counts
+    Algorithm.PinSeriesCounts counts = getPinSeriesCounts(seriesName);
+    if (counts == null) {
+      return new FMVResult(floorValues, ceilValues); // Empty maps if no series data
+    }
+
+    // Override start point to zero for FMV calculation
+    Algorithm.DPStartPoint zeroStartPoint = new Algorithm.DPStartPoint(0, 0, 0, 0, 0);
+    Algorithm.PinSeriesCounts fmvCounts =
+        new Algorithm.PinSeriesCounts(counts.goal, zeroStartPoint);
+
+    // Get cached or calculated result
+    Algorithm.DPResult result = getCachedOrCalculateFMVResult(seriesName, fmvCounts);
+    if (result == null) {
+      return new FMVResult(floorValues, ceilValues); // Empty maps if calculation fails
+    }
+    if (result.isError()) {
+      return new FMVResult(floorValues, ceilValues); // Empty maps if calculation fails
+    }
+
+    // Calculate floor values (what if one more) for each rarity type where delta is available
+    if (result.whatIfOneMoreSignature.isPresent()) {
+      floorValues.put(Rarity.SIGNATURE, (result.whatIfOneMoreSignature.get() * pinboxPrice) / 2.0);
+    }
+    if (result.whatIfOneMoreDeluxe.isPresent()) {
+      floorValues.put(Rarity.DELUXE, (result.whatIfOneMoreDeluxe.get() * pinboxPrice) / 2.0);
+    }
+    if (result.whatIfOneMoreRare.isPresent()) {
+      floorValues.put(Rarity.RARE, (result.whatIfOneMoreRare.get() * pinboxPrice) / 2.0);
+    }
+    if (result.whatIfOneMoreUncommon.isPresent()) {
+      floorValues.put(Rarity.UNCOMMON, (result.whatIfOneMoreUncommon.get() * pinboxPrice) / 2.0);
+    }
+    if (result.whatIfOneMoreCommon.isPresent()) {
+      floorValues.put(Rarity.COMMON, (result.whatIfOneMoreCommon.get() * pinboxPrice) / 2.0);
+    }
+
+    // Calculate ceil values (what if last) for each rarity type where delta is available
+    if (result.whatIfLastSignature.isPresent()) {
+      ceilValues.put(Rarity.SIGNATURE, (result.whatIfLastSignature.get() * pinboxPrice) / 2.0);
+    }
+    if (result.whatIfLastDeluxe.isPresent()) {
+      ceilValues.put(Rarity.DELUXE, (result.whatIfLastDeluxe.get() * pinboxPrice) / 2.0);
+    }
+    if (result.whatIfLastRare.isPresent()) {
+      ceilValues.put(Rarity.RARE, (result.whatIfLastRare.get() * pinboxPrice) / 2.0);
+    }
+    if (result.whatIfLastUncommon.isPresent()) {
+      ceilValues.put(Rarity.UNCOMMON, (result.whatIfLastUncommon.get() * pinboxPrice) / 2.0);
+    }
+    if (result.whatIfLastCommon.isPresent()) {
+      ceilValues.put(Rarity.COMMON, (result.whatIfLastCommon.get() * pinboxPrice) / 2.0);
+    }
+
+    return new FMVResult(floorValues, ceilValues);
   }
 }
