@@ -5,7 +5,7 @@ set -e
 PROJECT_DIR="/Users/cusgadmin/wdwmap/pinhoarder"
 TARGET_DIR="/Users/cusgadmin/.lunarclient/profiles/modrinth/imaginefun/versions/0.0.6/mods/fabric-1.21.11"
 
-JAR_NAME="pim-1.2.0.jar"
+JAR_NAME="pim-1.2.5.jar"
 SOURCE_JAR="${PROJECT_DIR}/build/libs/${JAR_NAME}"
 TARGET_JAR="${TARGET_DIR}/${JAR_NAME}"
 
